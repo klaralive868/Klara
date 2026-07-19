@@ -109,7 +109,7 @@ test('submitting set-password with a password that already matches succeeds inst
 	await inviteeContext.close();
 });
 
-test('revisiting an already-claimed invite link shows the already-claimed notice', async ({
+test('revisiting a claimed invite link shows invalid-link and does not sign the user out', async ({
 	page,
 	browser
 }) => {
@@ -124,16 +124,25 @@ test('revisiting an already-claimed invite link shows the already-claimed notice
 	await inviteePage.getByRole('button', { name: 'Set password' }).click();
 	await expect(inviteePage).toHaveURL('/dashboard');
 
-	// Revisit the same link in the same browser session that originally
-	// claimed it — the token itself is single-use and always fails on a
-	// second visit, so distinguishing "already claimed" from "invalid" relies
-	// on this browser still carrying the session from the original claim.
+	// The token is single-use, so a second visit always fails verification —
+	// there's no reliable way to tell "already claimed" apart from "never
+	// valid" from that failure alone (an earlier attempt that tried to infer
+	// it from "does this browser have an active session" incorrectly signed
+	// out and misinformed unrelated active users; see klara-standards-v2.md
+	// §3). Both cases now read as invalid-link, and — the important part —
+	// visiting this dead link must not disturb the still-active session at
+	// all.
 	await inviteePage.goto(confirmUrl);
 
-	await expect(inviteePage).toHaveURL('/sign-in?notice=already-claimed');
+	await expect(inviteePage).toHaveURL('/sign-in?notice=invalid-link');
 	await expect(inviteePage.getByRole('status')).toHaveText(
-		'This invite has already been claimed. Please sign in.'
+		'This invite link is invalid or has expired.'
 	);
+
+	// The invitee's own session must still be intact — confirm() didn't sign
+	// them out as a side effect of the failed verification.
+	await inviteePage.goto('/dashboard');
+	await expect(inviteePage).toHaveURL('/dashboard');
 
 	await inviteeContext.close();
 });
@@ -143,6 +152,30 @@ test('a genuinely invalid or expired invite link shows a distinct notice', async
 
 	await expect(page).toHaveURL('/sign-in?notice=invalid-link');
 	await expect(page.getByRole('status')).toHaveText('This invite link is invalid or has expired.');
+});
+
+test('an unrelated active user hitting a broken invite link keeps their own session', async ({
+	page
+}) => {
+	// Regression test: an earlier version inferred "already claimed" from
+	// "does this browser currently have an active session" — which is true
+	// for ANY signed-in active user, not just the one who owns this specific
+	// token. That incorrectly signed out and misinformed someone like an
+	// owner testing a stale invite link while signed into their own account.
+	// Signed in as the manager (not the inviter) purely to keep this test's
+	// sign-in off the inviter's rate-limit budget, shared across this file.
+	await page.goto('/sign-in');
+	await page.getByLabel('Email').fill(MANAGER_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill(MANAGER_PASSWORD);
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page).toHaveURL('/dashboard');
+
+	await page.goto('/auth/confirm?token_hash=not-a-real-token&type=invite');
+	await expect(page).toHaveURL('/sign-in?notice=invalid-link');
+
+	// Their own, entirely unrelated session must still be intact.
+	await page.goto('/dashboard');
+	await expect(page).toHaveURL('/dashboard');
 });
 
 test('a manager cannot invite someone as owner', async ({ page }) => {
@@ -167,8 +200,14 @@ test('an already-active user cannot change their password by posting directly to
 	// Simulates POSTing the action directly (bypassing the UI and the `load`
 	// guard that would normally redirect an active user away) — form actions
 	// are dispatched independently of `load` in SvelteKit, so this is the
-	// actual attack surface, not just a UI-level check.
-	await signInAsInviter(page);
+	// actual attack surface, not just a UI-level check. Signed in as the
+	// manager purely to keep this test's two sign-ins off the inviter's
+	// rate-limit budget, shared across this file.
+	await page.goto('/sign-in');
+	await page.getByLabel('Email').fill(MANAGER_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill(MANAGER_PASSWORD);
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page).toHaveURL('/dashboard');
 
 	// Posted via fetch() inside the actual browser page (not page.request) so
 	// the real session cookie — Secure-flagged — is attached the way a
@@ -191,8 +230,8 @@ test('an already-active user cannot change their password by posting directly to
 	// works, so nothing was actually changed.
 	await page.context().clearCookies();
 	await page.goto('/sign-in');
-	await page.getByLabel('Email').fill(INVITER_EMAIL);
-	await page.getByLabel('Password', { exact: true }).fill(INVITER_PASSWORD);
+	await page.getByLabel('Email').fill(MANAGER_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill(MANAGER_PASSWORD);
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL('/dashboard');
 });

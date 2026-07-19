@@ -31,22 +31,15 @@ export const GET: RequestHandler = async ({ url, locals, getClientAddress }) => 
 	const { error } = await locals.supabase.auth.verifyOtp({ type, token_hash: tokenHash });
 	if (error) {
 		// The token itself is single-use, so a second click always fails here —
-		// that alone can't distinguish "already claimed" from "never valid". If
-		// this browser still carries a session from originally claiming it,
-		// that session's membership status can. A different browser/device
-		// re-visiting a used link has no such session and always reads as
-		// invalid-link; that's a known, accepted limit of a single-use token
-		// (documented in klara-standards-v2.md §3).
-		const { user: existingUser } = await locals.safeGetSession();
-		const alreadyActive =
-			existingUser && (await getMembershipStatus(locals.supabase, existingUser.id)) === 'active';
-		// Only sign out when that existing session is the one being reported as
-		// already-claimed — an unrelated valid session (e.g. a pending member
-		// testing a stale link in another tab) must not be torn down here.
-		if (alreadyActive) {
-			await locals.supabase.auth.signOut();
-		}
-		throw redirect(303, `/sign-in?notice=${alreadyActive ? 'already-claimed' : 'invalid-link'}`);
+		// that alone can't distinguish "already claimed" from "never valid".
+		// Whether *this browser* happens to have an active session says nothing
+		// about who this token belonged to — any signed-in active user (not
+		// just the one who originally claimed this specific link) would satisfy
+		// that check, so it can't be used to justify signing anyone out or
+		// reporting "already claimed" here. Always read as invalid-link instead;
+		// this is a known, accepted limit of a single-use token (documented in
+		// klara-standards-v2.md §3).
+		throw redirect(303, '/sign-in?notice=invalid-link');
 	}
 
 	const { user } = await locals.safeGetSession();
