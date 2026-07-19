@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
+import { createAdminClient } from './admin-client';
 import { extractConfirmUrl, getLatestEmailTo } from './mailpit';
 import {
 	INVITEE_EMAIL_PREFIX,
@@ -57,6 +58,50 @@ test('full invite, claim, and set-password flow lands the invitee in the app', a
 	await expect(inviteePage).toHaveURL('/set-password');
 
 	await inviteePage.getByLabel('Password', { exact: true }).fill('a-fresh-password');
+	await inviteePage.getByRole('button', { name: 'Set password' }).click();
+
+	await expect(inviteePage).toHaveURL('/dashboard');
+
+	await inviteeContext.close();
+});
+
+test('submitting set-password with a password that already matches succeeds instead of erroring', async ({
+	page,
+	browser
+}) => {
+	// Regression test for: if the membership-activation write ever fails after
+	// the password was already changed, the invitee is left pending with a
+	// password that no longer matches what they originally typed. A retry
+	// with that same (now-current) password must succeed, not be rejected as
+	// "must differ from the old password" — which would strand them
+	// permanently. Simulated here by setting the password out-of-band to the
+	// value the invitee is about to (re)submit, standing in for "a prior
+	// attempt already got this far."
+	const email = uniqueInviteeEmail();
+
+	await signInAsInviter(page);
+	await sendInvite(page, email);
+
+	const { inviteeContext, inviteePage } = await claimInviteInNewContext(browser, email);
+	await expect(inviteePage).toHaveURL('/set-password');
+
+	const admin = createAdminClient();
+	const { data: usersPage } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+	const invitee = usersPage?.users.find((candidate) => candidate.email === email);
+	if (!invitee) throw new Error(`e2e setup failure: invitee ${email} not found`);
+	await admin.auth.admin.updateUserById(invitee.id, { password: 'retry-password' });
+
+	// The out-of-band update above invalidates the session from claiming the
+	// link, exactly as it would after the app's own re-sign-in step inside a
+	// request that failed later at the membership write — sign back in to
+	// reach the same starting point a real retry would.
+	await inviteePage.goto('/sign-in');
+	await inviteePage.getByLabel('Email').fill(email);
+	await inviteePage.getByLabel('Password', { exact: true }).fill('retry-password');
+	await inviteePage.getByRole('button', { name: 'Sign in' }).click();
+	await expect(inviteePage).toHaveURL('/set-password');
+
+	await inviteePage.getByLabel('Password', { exact: true }).fill('retry-password');
 	await inviteePage.getByRole('button', { name: 'Set password' }).click();
 
 	await expect(inviteePage).toHaveURL('/dashboard');

@@ -47,14 +47,39 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const password = String(formData.get('password') ?? '');
 
-		// Minimum length is enforced by Supabase project config (minimum_password_length),
-		// so this call is the single source of truth — no duplicate check here.
-		const { error: updateError } = await locals.supabase.auth.updateUser({ password });
+		const admin = createSupabaseAdminClient();
+
+		// Set via the admin client (updateUserById), not the caller's own
+		// auth.updateUser — the latter rejects a retry with an identical
+		// password ("New password should be different from the old password"),
+		// which would permanently strand an invitee here if the membership
+		// update below ever fails after the password already changed: they'd
+		// retry with the same password and get rejected, with status still
+		// pending and no way to complete onboarding. updateUserById has no such
+		// check, so a retry is always accepted.
+		//
+		// Minimum length is enforced by Supabase project config
+		// (minimum_password_length), so this call is the single source of truth
+		// for that — no duplicate check here.
+		const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password });
 		if (updateError) {
 			return fail(400, { message: updateError.message });
 		}
 
-		const admin = createSupabaseAdminClient();
+		// updateUserById invalidates the caller's existing session as a side
+		// effect (confirmed: a subsequent getUser() on the old session errors
+		// with "Auth session missing"). Re-establish one with the password that
+		// was just set, through the request-bound client so the fresh session
+		// cookie actually reaches the response — otherwise the redirect below
+		// lands on a signed-out /dashboard, bounced straight back to /sign-in.
+		const { error: reSignInError } = await locals.supabase.auth.signInWithPassword({
+			email: user.email ?? '',
+			password
+		});
+		if (reSignInError) {
+			return fail(500, { message: 'Password set, but failed to restore your session.' });
+		}
+
 		const { error: memberError } = await admin
 			.from('organization_members')
 			.update({ status: 'active', claimed_at: new Date().toISOString() })
