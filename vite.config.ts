@@ -1,9 +1,15 @@
+/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		host: '127.0.0.1',
+		port: 5183,
+		strictPort: true
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
@@ -18,5 +24,11 @@ export default defineConfig({
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter()
 		})
-	]
+	],
+	test: {
+		environment: 'node',
+		include: ['src/**/*.{test,spec}.{js,ts}'],
+		exclude: ['e2e/**'],
+		passWithNoTests: true
+	}
 });
