@@ -36,6 +36,12 @@ alter table public.organization_members enable row level security;
 create index organization_members_user_id_idx on public.organization_members (user_id);
 create index organization_members_organization_id_idx on public.organization_members (organization_id);
 
+-- A user has at most one ACTIVE membership at a time — current_organization_id()
+-- below is only deterministic if this holds. Enforced here, not just assumed.
+create unique index organization_members_one_active_per_user
+  on public.organization_members (user_id)
+  where status = 'active';
+
 -- ============================================================
 -- current_organization_id() — the policy pattern, written once, reused
 -- everywhere a policy needs "the caller's own organization" (Standards §1).
@@ -53,6 +59,7 @@ as $$
   from public.organization_members
   where user_id = auth.uid()
     and status = 'active'
+  order by claimed_at desc
   limit 1;
 $$;
 

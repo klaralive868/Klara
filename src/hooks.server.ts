@@ -21,7 +21,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return { session: null, user: null };
 		}
 
-		return { session, user };
+		// session.user is cookie-derived and unvalidated — strip it so callers can't
+		// reach it in place of the getUser()-validated `user` above.
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { user: _unvalidatedUser, ...safeSession } = session;
+		return { session: safeSession, user };
 	};
 
 	return resolve(event, {
