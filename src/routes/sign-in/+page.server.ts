@@ -1,11 +1,23 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { validateRedirectTo } from '$lib/server/redirect';
 import { checkRateLimit, rateLimitKey } from '$lib/server/rate-limit';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 const SIGN_IN_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
 const GENERIC_ERROR = 'Invalid email or password.';
 const RATE_LIMITED_ERROR = 'Too many attempts. Please try again later.';
+
+const NOTICES = {
+	'already-claimed': 'This invite has already been claimed. Please sign in.',
+	'invalid-link': 'This invite link is invalid or has expired.'
+} as const;
+
+export const load: PageServerLoad = async ({ url }) => {
+	const notice = url.searchParams.get('notice');
+	return {
+		notice: notice && notice in NOTICES ? NOTICES[notice as keyof typeof NOTICES] : null
+	};
+};
 
 export const actions: Actions = {
 	default: async ({ request, locals, getClientAddress, url }) => {

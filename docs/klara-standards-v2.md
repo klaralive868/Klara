@@ -1,6 +1,6 @@
 # Klara — Engineering Standards (v2, post-restart)
 
-> This supersedes the v1 Standards doc. It's the ruleset every change is measured against — checked by the pipeline's Dissect/spec stage and by review (in-session `code-review` + Greptile, pointed at this file). Rules are imperative, each with a one-line *why*, so conformance can be judged without re-deriving the reasoning.
+> This supersedes the v1 Standards doc. It's the ruleset every change is measured against — checked by the pipeline's Dissect/spec stage and by review (in-session `code-review` + Greptile, pointed at this file). Rules are imperative, each with a one-line _why_, so conformance can be judged without re-deriving the reasoning.
 
 ---
 
@@ -25,7 +25,7 @@ Given Supabase's architecture (tables are exposed directly to the client via Pos
 - **Every application-layer query/mutation that touches client data is scoped by the caller's business/client id**, resolved from the authenticated session — never from a client-supplied argument. This exists independently of and in addition to RLS (see §1).
 - **Admin/privileged actions require an explicit operator-role check as their first action**, validated server-side — never inferred from the frontend.
 - **Whitelist, don't blacklist, for constrained values** — enabled modules, roles, statuses, size types, contact preferences — filter incoming values against a known-good allowlist.
-- **Never leak which factor of an auth attempt failed**, with one documented, narrow exception: a message revealing account state (e.g. "please verify your email") is permitted only when it surfaces *after* successful password validation — never before, since that would let an unauthenticated guesser enumerate accounts. Any such exception must be explicitly noted in the code and in this document, not silently introduced.
+- **Never leak which factor of an auth attempt failed**, with one documented, narrow exception: a message revealing account state (e.g. "please verify your email") is permitted only when it surfaces _after_ successful password validation — never before, since that would let an unauthenticated guesser enumerate accounts. Any such exception must be explicitly noted in the code and in this document, not silently introduced.
 - **Rate-limit auth endpoints** — sign-in, password reset, invite-link claim.
 
 ---
@@ -35,7 +35,7 @@ Given Supabase's architecture (tables are exposed directly to the client via Pos
 > Decision of record: Klara uses **Supabase's own Auth**, not Better Auth. Reason: RLS policies rely on `auth.uid()` reading Supabase's own JWT; Better Auth issues a differently-shaped token, so bridging it would require an adapter layer — exactly the fragility that broke the v1 Convex build. Roles/teams are handled by a hand-rolled `organization_members` table, not Better Auth's organization plugin. Any reintroduction of Better Auth is drift — reconcile against ADR-0001 before proceeding.
 
 - **Session persistence on page refresh is a required, explicitly tested behavior**, not an assumption. The previous build shipped with sessions dying on refresh; verify this explicitly (sign in, hard-refresh, confirm the session survives) before considering any auth work done.
-- **The invite-link claim flow is single-use.** A claimed link revisited must show a clear "already claimed, please sign in" state, never silently re-processing or erroring unclearly.
+- **The invite-link claim flow is single-use.** A claimed link revisited must show a clear "already claimed, please sign in" state, never silently re-processing or erroring unclearly. **Known, accepted limit:** Supabase's invite token is itself single-use, so a second visit always fails token verification regardless of whether it was previously claimed — there's no way to identify the token's owner from that failure alone. Detection of "already claimed" therefore relies on the _browser_ that revisits the link still carrying the session from the original claim; a different browser or device re-visiting an already-used link reads as "invalid or expired" instead of "already claimed." This is a deliberate trade-off, not an oversight — revisit only if it causes real user confusion in practice.
 - **Possessing a valid, unexpired invite link/token is treated as equivalent proof of email control** for the purposes of exempting that specific flow from separate email verification — this is a deliberate, narrow, documented exception, not a general relaxation of verification requirements.
 - **Roles (owner/manager/staff or equivalent) are enforced at both layers:** the hand-rolled `organization_members` table for identity/membership (a user's role lives on their membership row), and RLS policies (plus views/application filtering for column-level restrictions) for actual data access. A role existing in the membership layer with no corresponding RLS enforcement is an incomplete implementation, not a finished one.
 - **Deferred post-auth actions:** never fire a backend action immediately in the same handler right after sign-up/sign-in/invite-claim — auth state needs a moment to be genuinely ready. Defer (e.g. via `sessionStorage`) and execute once the app's own confirmed auth state (not just the auth library's optimistic state) is ready.
@@ -73,8 +73,8 @@ Given Supabase's architecture (tables are exposed directly to the client via Pos
 ## 7. Development workflow — visual-first
 
 - **UI is built in two phases, as two distinct ticket types:**
-  1. *Static UI ticket* — components assembled from Figma designs, placeholder content, no backend wiring, no automated tests (nothing to test yet), reviewed on visual/flow fidelity.
-  2. *Wire-logic ticket* — connects an existing static screen to real Supabase queries/mutations, tested per §9's protocol.
+  1. _Static UI ticket_ — components assembled from Figma designs, placeholder content, no backend wiring, no automated tests (nothing to test yet), reviewed on visual/flow fidelity.
+  2. _Wire-logic ticket_ — connects an existing static screen to real Supabase queries/mutations, tested per §9's protocol.
 - **Don't skip the static phase to save a step.** Assembling real, clickable UI with placeholder data before wiring logic is what allows a genuine visual/flow review before backend investment — the previous build's UX issues came partly from skipping this.
 
 ---
@@ -92,7 +92,7 @@ Given Supabase's architecture (tables are exposed directly to the client via Pos
 
 Two distinct verification layers, stacked, not overlapping:
 
-**Layer 1 — automated tests (correctness).** Written test-first, one behavior at a time, targeting the public interface/seam. For Klara specifically, the highest-value tests are the security invariants: a caller cannot read/modify another business's data (tested at *both* the RLS layer and the application layer per §1), an unauthenticated/unauthorized call is rejected, server-side validation rejects tampered input, admin-gated actions reject a missing/wrong role. RLS policies specifically must have explicit denied-access tests, not just allowed-access tests.
+**Layer 1 — automated tests (correctness).** Written test-first, one behavior at a time, targeting the public interface/seam. For Klara specifically, the highest-value tests are the security invariants: a caller cannot read/modify another business's data (tested at _both_ the RLS layer and the application layer per §1), an unauthenticated/unauthorized call is rejected, server-side validation rejects tampered input, admin-gated actions reject a missing/wrong role. RLS policies specifically must have explicit denied-access tests, not just allowed-access tests.
 
 **Layer 2 — independent review (judgment).** The tool that writes code shares its own blind spots reviewing it. In-session `code-review` (Standards + Spec axes, kept separate) runs first and catches the obvious; **Greptile reviews the actual PR independently**, pointed at this document as its ruleset, and catches what the implementer is structurally blind to.
 

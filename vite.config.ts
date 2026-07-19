@@ -8,7 +8,11 @@ export default defineConfig({
 	server: {
 		host: '127.0.0.1',
 		port: 5183,
-		strictPort: true
+		strictPort: true,
+		// No app code lives under supabase/ — but the CLI/Docker stack writes to
+		// supabase/.temp during db reset/test runs, and watching that risked
+		// spurious dev-server reloads aborting in-flight Playwright navigations.
+		watch: { ignored: ['**/supabase/**'] }
 	},
 	plugins: [
 		tailwindcss(),
