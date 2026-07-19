@@ -1,21 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient, E2E_TEST_ORG_NAME } from './admin-client';
 import { TEST_USER_EMAIL, TEST_USER_PASSWORD } from './test-user';
 
 export default async function globalSetup() {
-	process.loadEnvFile?.('.env');
+	const admin = createAdminClient();
 
-	const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-	const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-	if (!supabaseUrl || !serviceRoleKey) {
-		throw new Error('PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set for e2e setup');
-	}
-
-	const admin = createClient(supabaseUrl, serviceRoleKey, {
-		auth: { autoRefreshToken: false, persistSession: false }
-	});
-
-	// Idempotent: remove a leftover user from a previous run before recreating it.
-	const { data: existing } = await admin.auth.admin.listUsers();
+	// Idempotent: remove a leftover user from a previous run (e.g. one that
+	// crashed before global-teardown ran) before recreating it. listUsers()
+	// paginates (default 50/page) — perPage keeps this correct even as the
+	// local dev auth.users table grows past that.
+	const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
 	const existingUser = existing?.users.find((candidate) => candidate.email === TEST_USER_EMAIL);
 	if (existingUser) {
 		await admin.auth.admin.deleteUser(existingUser.id);
@@ -32,7 +25,7 @@ export default async function globalSetup() {
 
 	const { data: organization, error: orgError } = await admin
 		.from('organizations')
-		.insert({ name: 'E2E Test Org' })
+		.insert({ name: E2E_TEST_ORG_NAME })
 		.select()
 		.single();
 	if (orgError || !organization) {
