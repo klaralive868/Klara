@@ -9,6 +9,14 @@ function isInvitableRole(value: string): value is InvitableRole {
 	return (INVITABLE_ROLES as readonly string[]).includes(value);
 }
 
+// A manager may not grant owner — only an owner can create another owner (or
+// a manager). Without this, the earlier "is the inviter owner-or-manager"
+// check alone lets any manager escalate an invitee straight to owner.
+const ROLES_GRANTABLE_BY: Record<'owner' | 'manager', readonly InvitableRole[]> = {
+	owner: INVITABLE_ROLES,
+	manager: ['manager', 'staff']
+};
+
 export const actions: Actions = {
 	signOut: async ({ locals }) => {
 		await locals.supabase.auth.signOut();
@@ -46,6 +54,11 @@ export const actions: Actions = {
 			return fail(403, { inviteMessage: 'Only owners and managers can invite teammates.' });
 		}
 
+		const inviterRole = inviterMembership.role as 'owner' | 'manager';
+		if (!ROLES_GRANTABLE_BY[inviterRole].includes(role)) {
+			return fail(403, { inviteMessage: `${inviterRole}s cannot invite ${role}s.` });
+		}
+
 		const admin = createSupabaseAdminClient();
 
 		// Creates the invitee's auth.users row and emails the invite link — the
@@ -55,7 +68,15 @@ export const actions: Actions = {
 			redirectTo: `${url.origin}/auth/confirm`
 		});
 		if (inviteError || !invited.user) {
-			return fail(400, { inviteMessage: inviteError?.message ?? 'Could not send invite.' });
+			// Supabase's raw error can include internal detail (e.g. "User already
+			// registered"). The inviter is already a privileged, authenticated
+			// caller, but this still shouldn't be a blank check on what leaks —
+			// only the one known, actionable case is surfaced specifically.
+			const message =
+				inviteError?.code === 'email_exists'
+					? 'That email already has an account.'
+					: 'Could not send invite. Please try again.';
+			return fail(400, { inviteMessage: message });
 		}
 
 		const { error: memberError } = await admin.from('organization_members').insert({
@@ -65,9 +86,12 @@ export const actions: Actions = {
 			status: 'pending'
 		});
 		if (memberError) {
-			return fail(500, {
-				inviteMessage: `Invite sent, but failed to create membership: ${memberError.message}`
-			});
+			// The invite email already went out with no membership row behind it —
+			// left as-is, the invitee's claim would silently dead-end at
+			// "invalid-link" with no way to retry (a new invite would just find
+			// this same, now-orphaned auth user). Undo the invite so a retry is clean.
+			await admin.auth.admin.deleteUser(invited.user.id);
+			return fail(500, { inviteMessage: 'Could not create the invite. Please try again.' });
 		}
 
 		return { success: true, inviteMessage: `Invite sent to ${email}.` };

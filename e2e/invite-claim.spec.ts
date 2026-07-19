@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
 import { extractConfirmUrl, getLatestEmailTo } from './mailpit';
-import { INVITEE_EMAIL_PREFIX, INVITER_EMAIL, INVITER_PASSWORD } from './test-user';
+import {
+	INVITEE_EMAIL_PREFIX,
+	INVITER_EMAIL,
+	INVITER_PASSWORD,
+	MANAGER_EMAIL,
+	MANAGER_PASSWORD
+} from './test-user';
 
 function uniqueInviteeEmail() {
 	return `${INVITEE_EMAIL_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
@@ -92,4 +98,20 @@ test('a genuinely invalid or expired invite link shows a distinct notice', async
 
 	await expect(page).toHaveURL('/sign-in?notice=invalid-link');
 	await expect(page.getByRole('status')).toHaveText('This invite link is invalid or has expired.');
+});
+
+test('a manager cannot invite someone as owner', async ({ page }) => {
+	const email = uniqueInviteeEmail();
+
+	await page.goto('/sign-in');
+	await page.getByLabel('Email').fill(MANAGER_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill(MANAGER_PASSWORD);
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page).toHaveURL('/dashboard');
+
+	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Role').selectOption('owner');
+	await page.getByRole('button', { name: 'Send invite' }).click();
+
+	await expect(page.getByRole('alert')).toHaveText('managers cannot invite owners.');
 });

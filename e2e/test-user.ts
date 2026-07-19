@@ -8,6 +8,11 @@ export const TEST_USER_PASSWORD = 'password123';
 export const INVITER_EMAIL = 'e2e-inviter@example.com';
 export const INVITER_PASSWORD = 'password123';
 
+// An active manager (not owner) in the same org, for testing that a manager
+// cannot escalate an invitee straight to owner.
+export const MANAGER_EMAIL = 'e2e-manager@example.com';
+export const MANAGER_PASSWORD = 'password123';
+
 // Every invitee created by invite-claim.spec.ts uses this prefix so
 // global-teardown can find and remove them without tracking individual ids.
 export const INVITEE_EMAIL_PREFIX = 'e2e-invitee-';

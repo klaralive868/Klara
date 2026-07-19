@@ -1,5 +1,5 @@
 import { createAdminClient, E2E_TEST_ORG_NAME } from './admin-client';
-import { INVITEE_EMAIL_PREFIX, INVITER_EMAIL, TEST_USER_EMAIL } from './test-user';
+import { INVITEE_EMAIL_PREFIX, INVITER_EMAIL, MANAGER_EMAIL, TEST_USER_EMAIL } from './test-user';
 
 export default async function globalTeardown() {
 	const admin = createAdminClient();
@@ -10,6 +10,7 @@ export default async function globalTeardown() {
 		(candidate) =>
 			candidate.email === TEST_USER_EMAIL ||
 			candidate.email === INVITER_EMAIL ||
+			candidate.email === MANAGER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX)
 	);
 	for (const user of staleUsers) {
