@@ -1,14 +1,21 @@
 import { createAdminClient, E2E_TEST_ORG_NAME } from './admin-client';
-import { TEST_USER_EMAIL } from './test-user';
+import { INVITEE_EMAIL_PREFIX, INVITER_EMAIL, MANAGER_EMAIL, TEST_USER_EMAIL } from './test-user';
 
 export default async function globalTeardown() {
 	const admin = createAdminClient();
 
 	const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-	const existingUser = existing?.users.find((candidate) => candidate.email === TEST_USER_EMAIL);
-	if (existingUser) {
-		// Cascades to the user's organization_members row (on delete cascade).
-		await admin.auth.admin.deleteUser(existingUser.id);
+
+	const staleUsers = (existing?.users ?? []).filter(
+		(candidate) =>
+			candidate.email === TEST_USER_EMAIL ||
+			candidate.email === INVITER_EMAIL ||
+			candidate.email === MANAGER_EMAIL ||
+			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX)
+	);
+	for (const user of staleUsers) {
+		// Cascades to that user's organization_members row(s) (on delete cascade).
+		await admin.auth.admin.deleteUser(user.id);
 	}
 
 	// Deletes by name rather than a tracked id so this also mops up any

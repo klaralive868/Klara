@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { getMembershipStatus } from '$lib/server/membership';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
@@ -9,13 +10,17 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		throw redirect(303, signInTarget);
 	}
 
-	// Any failure here (no active membership — e.g. still pending an invite claim)
-	// is treated the same as no session for now. Ticket #4 introduces a dedicated
-	// pending -> set-password redirect once that route exists.
-	const { data: organizationId, error } = await locals.supabase.rpc('current_organization_id');
-	if (error || !organizationId) {
-		throw redirect(303, signInTarget);
+	const status = await getMembershipStatus(locals.supabase, user.id);
+
+	if (status === 'active') {
+		return { user };
 	}
 
-	return { user };
+	// A pending member (mid invite-claim) is forced to set-password regardless
+	// of what protected path they hit — there's nothing else for them to do yet.
+	if (status === 'pending') {
+		throw redirect(303, '/set-password');
+	}
+
+	throw redirect(303, signInTarget);
 };
