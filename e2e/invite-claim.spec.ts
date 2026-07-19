@@ -115,3 +115,39 @@ test('a manager cannot invite someone as owner', async ({ page }) => {
 
 	await expect(page.getByRole('alert')).toHaveText('managers cannot invite owners.');
 });
+
+test('an already-active user cannot change their password by posting directly to /set-password', async ({
+	page
+}) => {
+	// Simulates POSTing the action directly (bypassing the UI and the `load`
+	// guard that would normally redirect an active user away) — form actions
+	// are dispatched independently of `load` in SvelteKit, so this is the
+	// actual attack surface, not just a UI-level check.
+	await signInAsInviter(page);
+
+	// Posted via fetch() inside the actual browser page (not page.request) so
+	// the real session cookie — Secure-flagged — is attached the way a
+	// browser genuinely would; page.request is a separate HTTP client that
+	// doesn't apply Chromium's "127.0.0.1 counts as secure" exception, and
+	// silently drops Secure cookies on a plain-http request.
+	const body = await page.evaluate(async () => {
+		const res = await fetch('/set-password', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: new URLSearchParams({ password: 'attacker-chosen-password' })
+		});
+		return res.json();
+	});
+	// SvelteKit's fetch-style action response always transports as HTTP 200 —
+	// the real outcome is the `status` field inside its JSON envelope.
+	expect(body).toMatchObject({ type: 'failure', status: 403 });
+
+	// Behavioral proof, not just the status code: the original password still
+	// works, so nothing was actually changed.
+	await page.context().clearCookies();
+	await page.goto('/sign-in');
+	await page.getByLabel('Email').fill(INVITER_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill(INVITER_PASSWORD);
+	await page.getByRole('button', { name: 'Sign in' }).click();
+	await expect(page).toHaveURL('/dashboard');
+});

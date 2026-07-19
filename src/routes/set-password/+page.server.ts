@@ -30,6 +30,15 @@ export const actions: Actions = {
 			throw redirect(303, '/sign-in');
 		}
 
+		// Actions are dispatched independently of `load` — POSTing here directly
+		// would otherwise skip the pending-only guard `load` enforces, letting any
+		// already-active, authenticated user change their password with no old-
+		// password check at all.
+		const status = await getMembershipStatus(locals.supabase, user.id);
+		if (status !== 'pending') {
+			return fail(403, { message: 'This action is not available.' });
+		}
+
 		const key = rateLimitKey('set-password', getClientAddress(), user.id);
 		if (!checkRateLimit(key, SET_PASSWORD_RATE_LIMIT)) {
 			return fail(429, { message: 'Too many attempts. Please try again later.' });
