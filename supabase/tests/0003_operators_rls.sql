@@ -1,0 +1,68 @@
+-- RLS test: a user can see their own operators row (or its absence), but
+-- cannot see another user's operator status. Also asserts the table's
+-- entire write-security model — no INSERT/UPDATE/DELETE grant exists for
+-- `authenticated`, so operator status can only ever change via service_role
+-- (ADR-0003: a manual, one-time bootstrap step, never an app-driven write).
+begin;
+select plan(6);
+
+insert into auth.users (id, email) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'operator@example.com'),
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'non-operator@example.com');
+
+insert into public.operators (user_id) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee');
+
+-- As the operator: can see their own row.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from public.operators where user_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  1,
+  'an operator can see their own operators row'
+);
+
+-- As a non-operator: cannot see the operator's row.
+reset role;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"ffffffff-ffff-ffff-ffff-ffffffffffff","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from public.operators where user_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  0,
+  'a different, non-operator user CANNOT see the operator''s row'
+);
+
+select is(
+  (select count(*)::int from public.operators where user_id = 'ffffffff-ffff-ffff-ffff-ffffffffffff'),
+  0,
+  'a non-operator querying their own user_id correctly sees no row'
+);
+
+-- No authenticated user — operator or not — can grant, revoke, or otherwise
+-- write their own or anyone else's operator status. Blocked at the table
+-- grant layer (42501), before RLS is even evaluated.
+select throws_ok(
+  $$insert into public.operators (user_id) values ('ffffffff-ffff-ffff-ffff-ffffffffffff')$$,
+  '42501',
+  'permission denied for table operators',
+  'an authenticated user cannot insert into operators (self-granting operator status)'
+);
+
+select throws_ok(
+  $$update public.operators set created_at = now() where user_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'$$,
+  '42501',
+  'permission denied for table operators',
+  'an authenticated user cannot update an operators row'
+);
+
+select throws_ok(
+  $$delete from public.operators where user_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'$$,
+  '42501',
+  'permission denied for table operators',
+  'an authenticated user cannot delete an operators row (revoking operator status)'
+);
+
+select * from finish();
+rollback;

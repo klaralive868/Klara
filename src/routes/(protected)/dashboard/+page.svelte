@@ -1,16 +1,34 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const id = $props.id();
 </script>
 
 <main class="mx-auto mt-16 max-w-sm">
-	<h1 class="mb-6 text-xl font-semibold">Dashboard</h1>
+	<div class="mb-6 flex items-center justify-between">
+		<h1 class="text-xl font-semibold">Dashboard</h1>
+
+		{#if data.isOperator}
+			<details class="relative">
+				<summary class="cursor-pointer list-none rounded-3xl border border-input px-3 py-1 text-sm">
+					Menu
+				</summary>
+				<div
+					class="absolute right-0 z-10 mt-2 min-w-28 rounded-md border border-border bg-popover p-1 shadow-md"
+				>
+					<a href={resolve('/admin')} class="block rounded px-3 py-1.5 text-sm hover:bg-muted"
+						>Admin</a
+					>
+				</div>
+			</details>
+		{/if}
+	</div>
 
 	<form method="POST" action="?/signOut" class="mb-10">
 		<Button type="submit">Sign out</Button>

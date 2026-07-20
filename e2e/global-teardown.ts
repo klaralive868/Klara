@@ -1,5 +1,11 @@
 import { createAdminClient, E2E_TEST_ORG_NAME } from './admin-client';
-import { INVITEE_EMAIL_PREFIX, INVITER_EMAIL, MANAGER_EMAIL, TEST_USER_EMAIL } from './test-user';
+import {
+	INVITEE_EMAIL_PREFIX,
+	INVITER_EMAIL,
+	MANAGER_EMAIL,
+	OPERATOR_EMAIL,
+	TEST_USER_EMAIL
+} from './test-user';
 
 export default async function globalTeardown() {
 	const admin = createAdminClient();
@@ -11,10 +17,11 @@ export default async function globalTeardown() {
 			candidate.email === TEST_USER_EMAIL ||
 			candidate.email === INVITER_EMAIL ||
 			candidate.email === MANAGER_EMAIL ||
+			candidate.email === OPERATOR_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX)
 	);
 	for (const user of staleUsers) {
-		// Cascades to that user's organization_members row(s) (on delete cascade).
+		// Cascades to that user's organization_members/operators row(s) (on delete cascade).
 		await admin.auth.admin.deleteUser(user.id);
 	}
 
