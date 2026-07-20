@@ -5,6 +5,8 @@ import {
 	INVITER_PASSWORD,
 	MANAGER_EMAIL,
 	MANAGER_PASSWORD,
+	OPERATOR_EMAIL,
+	OPERATOR_PASSWORD,
 	TEST_USER_EMAIL,
 	TEST_USER_PASSWORD
 } from './test-user';
@@ -35,6 +37,8 @@ async function createActiveMember(
 	if (memberError) {
 		throw new Error(`Failed to create e2e membership for ${email}: ${memberError.message}`);
 	}
+
+	return created.user;
 }
 
 export default async function globalSetup() {
@@ -45,7 +49,7 @@ export default async function globalSetup() {
 	// paginates (default 50/page) — perPage keeps this correct even as the
 	// local dev auth.users table grows past that.
 	const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-	const staleEmails = new Set([TEST_USER_EMAIL, INVITER_EMAIL, MANAGER_EMAIL]);
+	const staleEmails = new Set([TEST_USER_EMAIL, INVITER_EMAIL, MANAGER_EMAIL, OPERATOR_EMAIL]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
 			await admin.auth.admin.deleteUser(candidate.id);
@@ -64,4 +68,20 @@ export default async function globalSetup() {
 	await createActiveMember(admin, organization.id, TEST_USER_EMAIL, TEST_USER_PASSWORD, 'owner');
 	await createActiveMember(admin, organization.id, INVITER_EMAIL, INVITER_PASSWORD, 'owner');
 	await createActiveMember(admin, organization.id, MANAGER_EMAIL, MANAGER_PASSWORD, 'manager');
+
+	const operatorUser = await createActiveMember(
+		admin,
+		organization.id,
+		OPERATOR_EMAIL,
+		OPERATOR_PASSWORD,
+		'staff'
+	);
+	const { error: operatorError } = await admin
+		.from('operators')
+		.insert({ user_id: operatorUser.id });
+	if (operatorError) {
+		throw new Error(
+			`Failed to create e2e operator row for ${OPERATOR_EMAIL}: ${operatorError.message}`
+		);
+	}
 }

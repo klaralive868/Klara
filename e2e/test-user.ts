@@ -13,6 +13,11 @@ export const INVITER_PASSWORD = 'password123';
 export const MANAGER_EMAIL = 'e2e-manager@example.com';
 export const MANAGER_PASSWORD = 'password123';
 
+// An active member who is also an operator, for testing the (admin) guard
+// and the dashboard's Admin dropdown.
+export const OPERATOR_EMAIL = 'e2e-operator@example.com';
+export const OPERATOR_PASSWORD = 'password123';
+
 // Every invitee created by invite-claim.spec.ts uses this prefix so
 // global-teardown can find and remove them without tracking individual ids.
 export const INVITEE_EMAIL_PREFIX = 'e2e-invitee-';

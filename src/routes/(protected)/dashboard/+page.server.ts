@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
-import type { Actions } from './$types';
+import { isOperator } from '$lib/server/operator';
+import type { Actions, PageServerLoad } from './$types';
 
 const INVITABLE_ROLES = ['owner', 'manager', 'staff'] as const;
 type InvitableRole = (typeof INVITABLE_ROLES)[number];
@@ -15,6 +16,15 @@ function isInvitableRole(value: string): value is InvitableRole {
 const ROLES_GRANTABLE_BY: Record<'owner' | 'manager', readonly InvitableRole[]> = {
 	owner: INVITABLE_ROLES,
 	manager: ['manager', 'staff']
+};
+
+export const load: PageServerLoad = async ({ locals }) => {
+	const { user } = await locals.safeGetSession();
+	return {
+		// Drives whether the dashboard shows the "Admin" option — the (admin)
+		// guard is the actual enforcement point, this is display-only.
+		isOperator: user ? await isOperator(locals.supabase, user.id) : false
+	};
 };
 
 export const actions: Actions = {
