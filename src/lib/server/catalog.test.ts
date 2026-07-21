@@ -71,4 +71,11 @@ describe('parseCatalogItemForm', () => {
 		);
 		expect(result.ok && result.value.priceCents).toBe(1000);
 	});
+
+	it('rounds a value that IEEE 754 float multiplication would misround (1.005 * 100 === 100.49999999999999)', () => {
+		const result = parseCatalogItemForm(
+			formData({ name: 'Item', price: '1.005', materialType: 'jersey' })
+		);
+		expect(result.ok && result.value.priceCents).toBe(101);
+	});
 });

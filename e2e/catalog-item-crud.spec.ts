@@ -122,6 +122,7 @@ test("the item list only shows the caller's own organization's items, and a fore
 	// Cross-organization denied-access, exercised through the actual UI/session
 	// (mirroring supabase/tests/0005_catalog_items_rls.sql): the other org's
 	// list never shows this item, and visiting its edit URL directly 404s.
+	await secondOrgPage.goto('/dashboard/catalog');
 	await expect(secondOrgPage.getByRole('listitem').filter({ hasText: ownItemName })).toHaveCount(0);
 
 	await secondOrgPage.goto(ownItemHref);

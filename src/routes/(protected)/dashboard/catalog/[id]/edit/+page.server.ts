@@ -73,10 +73,14 @@ export const actions: Actions = {
 	},
 
 	unarchive: async ({ params, locals }) => {
+		// Only a genuinely archived item can be unarchived — without this,
+		// a direct POST to a published item would silently demote it to draft
+		// (the UI only ever renders this button for archived items).
 		const { data, error: updateError } = await locals.supabase
 			.from('catalog_items')
 			.update({ status: 'draft' })
 			.eq('id', params.id)
+			.eq('status', 'archived')
 			.select('id')
 			.maybeSingle();
 
@@ -84,7 +88,7 @@ export const actions: Actions = {
 			return fail(500, { message: 'Could not restore the item. Please try again.' });
 		}
 		if (!data) {
-			return fail(404, { message: 'Item not found.' });
+			return fail(404, { message: 'Item not found or not archived.' });
 		}
 
 		return { success: true, message: 'Item restored to draft.' };
