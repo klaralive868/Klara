@@ -15,3 +15,4 @@ export function createAdminClient() {
 }
 
 export const E2E_TEST_ORG_NAME = 'E2E Test Org';
+export const E2E_SECOND_ORG_NAME = 'E2E Second Org';

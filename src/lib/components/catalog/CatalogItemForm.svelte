@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
+	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import MaterialTypePicker from './MaterialTypePicker.svelte';
 	import SizeSelector from './SizeSelector.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
-	import type { CatalogItemStatus, PlaceholderCatalogItem } from '$lib/catalog/placeholder-items';
+	import type { CatalogItem } from '$lib/catalog/types';
 
-	let { initial }: { initial?: PlaceholderCatalogItem } = $props();
+	let {
+		initial,
+		message
+	}: {
+		initial?: CatalogItem;
+		message?: string;
+	} = $props();
 
 	const id = $props.id();
 
@@ -18,8 +24,9 @@
 	let description = $state(untrack(() => initial?.description ?? ''));
 	let price = $state(untrack(() => (initial ? (initial.priceCents / 100).toFixed(2) : '')));
 	let materialType = $state(untrack(() => initial?.materialType ?? ''));
-	let sizes = $state<string[]>(untrack(() => initial?.sizes ?? []));
-	let status = $state<CatalogItemStatus>(untrack(() => initial?.status ?? 'draft'));
+	// Sizes/stock have no backing table yet (ticket 8) — this stays local-only
+	// and visual, same as ticket 1's static shell.
+	let sizes = $state<string[]>([]);
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
 
@@ -34,18 +41,18 @@
 	});
 </script>
 
-<!-- TODO(#13): wire real submit once the item form is backed by Supabase. -->
-<form class="space-y-6" onsubmit={(event) => event.preventDefault()}>
+<form method="POST" class="space-y-6">
 	<FieldGroup>
 		<Field>
 			<FieldLabel for="name-{id}">Name</FieldLabel>
-			<Input id="name-{id}" bind:value={name} required />
+			<Input id="name-{id}" name="name" bind:value={name} required />
 		</Field>
 
 		<Field>
 			<FieldLabel for="description-{id}">Description</FieldLabel>
 			<textarea
 				id="description-{id}"
+				name="description"
 				bind:value={description}
 				rows="3"
 				class="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"></textarea>
@@ -53,12 +60,21 @@
 
 		<Field>
 			<FieldLabel for="price-{id}">Price (USD)</FieldLabel>
-			<Input id="price-{id}" type="number" min="0" step="0.01" bind:value={price} required />
+			<Input
+				id="price-{id}"
+				name="price"
+				type="number"
+				min="0"
+				step="0.01"
+				bind:value={price}
+				required
+			/>
 		</Field>
 	</FieldGroup>
 
 	<div>
 		<p class="mb-2 text-sm font-medium">Material type</p>
+		<input type="hidden" name="materialType" value={materialType} />
 		<MaterialTypePicker bind:value={materialType} />
 	</div>
 
@@ -69,29 +85,31 @@
 		</div>
 	{/if}
 
-	<div>
-		<p class="mb-2 text-sm font-medium">
-			Status: <span class="font-normal capitalize">{status}</span>
-		</p>
-		<div class="flex gap-2">
-			{#if status === 'draft'}
-				<Button type="button" onclick={() => (status = 'published')}>Publish</Button>
-				<Button type="button" variant="outline" onclick={() => (status = 'archived')}>
-					Archive
-				</Button>
-			{:else if status === 'published'}
-				<Button type="button" variant="outline" onclick={() => (status = 'archived')}>
-					Archive
-				</Button>
-			{:else if status === 'archived'}
-				<Button type="button" variant="outline" onclick={() => (status = 'draft')}>
-					Unarchive
-				</Button>
-			{/if}
+	{#if message}
+		<FieldError errors={[{ message }]} />
+	{/if}
+
+	{#if initial}
+		<div>
+			<p class="mb-2 text-sm font-medium">
+				Status: <span class="font-normal capitalize">{initial.status}</span>
+			</p>
+			<div class="flex flex-wrap items-center gap-2">
+				{#if initial.status === 'draft'}
+					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
+					<p class="text-sm text-muted-foreground">
+						Publishing arrives once items can be tagged with categories.
+					</p>
+				{:else if initial.status === 'published'}
+					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
+				{:else if initial.status === 'archived'}
+					<Button type="submit" formaction="?/unarchive" variant="outline">Unarchive</Button>
+				{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<Field>
-		<Button type="submit">Save item</Button>
+		<Button type="submit" formaction={initial ? '?/update' : undefined}>Save item</Button>
 	</Field>
 </form>
