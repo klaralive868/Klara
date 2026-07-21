@@ -14,7 +14,10 @@
 <main class="mx-auto mt-16 max-w-2xl">
 	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-xl font-semibold">Catalog</h1>
-		<Button href={resolve('/dashboard/catalog/new')}>Add item</Button>
+		<div class="flex gap-2">
+			<Button href={resolve('/dashboard/catalog/categories')} variant="outline">Categories</Button>
+			<Button href={resolve('/dashboard/catalog/new')}>Add item</Button>
+		</div>
 	</div>
 
 	<ul class="divide-y divide-border rounded-lg border border-border">

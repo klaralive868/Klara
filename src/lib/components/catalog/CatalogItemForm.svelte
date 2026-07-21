@@ -5,7 +5,9 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import MaterialTypePicker from './MaterialTypePicker.svelte';
 	import SizeSelector from './SizeSelector.svelte';
+	import CategoryTagger from './CategoryTagger.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
+	import { PLACEHOLDER_CATEGORIES } from '$lib/catalog/placeholder-categories';
 	import type { CatalogItem } from '$lib/catalog/types';
 
 	let {
@@ -27,6 +29,9 @@
 	// Sizes/stock have no backing table yet (ticket 8) — this stays local-only
 	// and visual, same as ticket 1's static shell.
 	let sizes = $state<string[]>([]);
+	// Categories have no backing table yet either (ticket 4 wires real
+	// tagging + publish-gating) — local-only and visual for now.
+	let categoryIds = $state<string[]>([]);
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
 
@@ -84,6 +89,11 @@
 			<SizeSelector sizingScheme={selectedType.sizingScheme} bind:selected={sizes} />
 		</div>
 	{/if}
+
+	<div>
+		<p class="mb-2 text-sm font-medium">Categories</p>
+		<CategoryTagger categories={PLACEHOLDER_CATEGORIES} bind:selected={categoryIds} />
+	</div>
 
 	{#if message}
 		<FieldError errors={[{ message }]} />
