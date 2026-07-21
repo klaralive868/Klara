@@ -23,3 +23,20 @@ _Avoid_: Account (a user may hold zero, one, or more memberships; "account" conf
 **Claim**:
 The act of an invited user completing the invite-link flow: exchanging Supabase's invite token for a session, then setting a password. Single-use — a claimed link revisited must show "already claimed, please sign in," never re-process silently.
 _Avoid_: Activate, accept (reserve "activate" for the resulting `status: active`, not the act itself).
+
+### Catalog
+
+**Material Type**:
+A structural classification for a catalog item (Jersey, Shoes, Belt, etc.) — one per item, drawn from a static, code-owned registry (never client-created). Drives which fields and size scheme the shared item form renders; not to be confused with Category.
+_Avoid_: Product type, category (Material Type is structural/one-per-item; Category is merchandising/many-per-item — see ADR-0004).
+
+**Category**:
+A client-authored merchandising tag (e.g. Male, Kids, Jerseys) used for browsing/filtering, not for driving the item form. Two levels (a category and, optionally, one level of subcategory below it); an item can carry multiple categories at any level simultaneously. Unlike Material Type, there is no shared static registry — each organization manages its own category tree (ADR-0004).
+_Avoid_: Tag alone (used loosely elsewhere; within Catalog, "Category" is the precise term), Material Type.
+
+**Catalog Item**:
+A single product listing belonging to one organization: name, description, price, one Material Type, zero or more Categories, one or more images (one marked primary), a size-driven Stock record, and a lifecycle status (`draft` | `published` | `archived`, with `archived` always reversible back to `draft`).
+
+**Stock**:
+The available quantity of a Catalog Item at a given size (or, for sizeless Material Types, the item as a whole). Recorded per `(item, size)` pair, not embedded in the Material Type's size scheme — the size scheme says which sizes exist for a type; Stock says how many of each a specific item currently has.
+_Avoid_: Inventory (reserve for a possible future, more general inventory-management feature; Stock here is scoped specifically to Catalog items).
