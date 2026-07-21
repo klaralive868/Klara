@@ -34,6 +34,13 @@
 		<Button type="submit">Sign out</Button>
 	</form>
 
+	<h2 class="mb-2 text-lg font-semibold">Modules</h2>
+	<div class="mb-10">
+		<a href={resolve('/dashboard/catalog')} class="text-sm text-primary hover:underline">
+			Catalog
+		</a>
+	</div>
+
 	<h2 class="mb-4 text-lg font-semibold">Invite a teammate</h2>
 
 	<form method="POST" action="?/invite">
