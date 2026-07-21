@@ -6,6 +6,7 @@
 	import MaterialTypePicker from './MaterialTypePicker.svelte';
 	import SizeSelector from './SizeSelector.svelte';
 	import CategoryTagger from './CategoryTagger.svelte';
+	import ImageUploader from './ImageUploader.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
 	import { PLACEHOLDER_CATEGORIES } from '$lib/catalog/placeholder-categories';
 	import type { CatalogItem } from '$lib/catalog/types';
@@ -94,6 +95,8 @@
 		<p class="mb-2 text-sm font-medium">Categories</p>
 		<CategoryTagger categories={PLACEHOLDER_CATEGORIES} bind:selected={categoryIds} />
 	</div>
+
+	<ImageUploader />
 
 	{#if message}
 		<FieldError errors={[{ message }]} />
