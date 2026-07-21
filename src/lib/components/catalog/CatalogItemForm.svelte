@@ -4,7 +4,7 @@
 	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import MaterialTypePicker from './MaterialTypePicker.svelte';
-	import SizeSelector from './SizeSelector.svelte';
+	import StockSelector from './StockSelector.svelte';
 	import CategoryTagger from './CategoryTagger.svelte';
 	import ImageUploader from './ImageUploader.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
@@ -27,21 +27,22 @@
 	let description = $state(untrack(() => initial?.description ?? ''));
 	let price = $state(untrack(() => (initial ? (initial.priceCents / 100).toFixed(2) : '')));
 	let materialType = $state(untrack(() => initial?.materialType ?? ''));
-	// Sizes/stock have no backing table yet (ticket 8) — this stays local-only
-	// and visual, same as ticket 1's static shell.
-	let sizes = $state<string[]>([]);
+	// Stock has no backing table yet (ticket #19 wires real persistence) —
+	// this stays local-only and visual.
+	let stockQuantities = $state<Record<string, number>>({});
 	// Categories have no backing table yet either (ticket 4 wires real
 	// tagging + publish-gating) — local-only and visual for now.
 	let categoryIds = $state<string[]>([]);
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
 
-	// Reset sizes whenever the material type (and therefore its sizing scheme)
-	// changes, so stale sizes from a previous selection can't linger.
+	// Reset stock quantities whenever the material type (and therefore its
+	// sizing scheme) changes, so stale sizes from a previous selection can't
+	// linger.
 	let lastMaterialType = untrack(() => initial?.materialType ?? '');
 	$effect(() => {
 		if (materialType !== lastMaterialType) {
-			sizes = [];
+			stockQuantities = {};
 			lastMaterialType = materialType;
 		}
 	});
@@ -86,8 +87,8 @@
 
 	{#if selectedType}
 		<div>
-			<p class="mb-2 text-sm font-medium">Sizes</p>
-			<SizeSelector sizingScheme={selectedType.sizingScheme} bind:selected={sizes} />
+			<p class="mb-2 text-sm font-medium">Stock</p>
+			<StockSelector sizingScheme={selectedType.sizingScheme} bind:quantities={stockQuantities} />
 		</div>
 	{/if}
 
