@@ -54,9 +54,16 @@
 	}
 
 	function deleteCategory(id: string) {
-		// Deleting a top-level category also removes its subcategories —
-		// there's nowhere left for them to be nested under.
-		categories = categories.filter((category) => category.id !== id && category.parentId !== id);
+		const isTopLevel = categories.some(
+			(category) => category.id === id && category.parentId === null
+		);
+		if (isTopLevel) {
+			// Deleting a top-level category also removes its subcategories —
+			// there's nowhere left for them to be nested under.
+			categories = categories.filter((category) => category.id !== id && category.parentId !== id);
+		} else {
+			categories = categories.filter((category) => category.id !== id);
+		}
 	}
 </script>
 

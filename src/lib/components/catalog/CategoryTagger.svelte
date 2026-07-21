@@ -29,16 +29,22 @@
 				{category.name}
 			</label>
 
-			{#each subcategoriesOf(category.id) as subcategory (subcategory.id)}
-				<label class="ml-6 flex items-center gap-1.5 text-sm">
-					<input
-						type="checkbox"
-						checked={selected.includes(subcategory.id)}
-						onchange={() => toggle(subcategory.id)}
-					/>
-					{subcategory.name}
-				</label>
-			{/each}
+			{#if subcategoriesOf(category.id).length > 0}
+				<ul role="group" class="ml-6 space-y-1">
+					{#each subcategoriesOf(category.id) as subcategory (subcategory.id)}
+						<li>
+							<label class="flex items-center gap-1.5 text-sm">
+								<input
+									type="checkbox"
+									checked={selected.includes(subcategory.id)}
+									onchange={() => toggle(subcategory.id)}
+								/>
+								{subcategory.name}
+							</label>
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		</li>
 	{:else}
 		<li class="text-sm text-muted-foreground">No categories yet.</li>
