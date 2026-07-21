@@ -10,8 +10,6 @@ export interface MaterialType {
 	sizingScheme: SizingScheme;
 	/** Shown in the picker's default view rather than behind "+ More materials". */
 	isCommon: boolean;
-	/** Gendered sizing (e.g. Shoes) needs separate male/female size arrays. */
-	hasGenderVariant: boolean;
 }
 
 export const STANDARD_TOP_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL'] as const;
@@ -22,84 +20,18 @@ export const GENDERED_SIZES = {
 } as const;
 
 export const MATERIAL_TYPES: readonly MaterialType[] = [
-	{
-		key: 'jersey',
-		label: 'Jersey',
-		sizingScheme: 'standardTops',
-		isCommon: true,
-		hasGenderVariant: false
-	},
-	{
-		key: 'shirt',
-		label: 'Shirt',
-		sizingScheme: 'standardTops',
-		isCommon: true,
-		hasGenderVariant: false
-	},
-	{
-		key: 'shorts',
-		label: 'Shorts',
-		sizingScheme: 'standardBottoms',
-		isCommon: true,
-		hasGenderVariant: false
-	},
-	{
-		key: 'shoes',
-		label: 'Shoes',
-		sizingScheme: 'gendered',
-		isCommon: true,
-		hasGenderVariant: true
-	},
-	{
-		key: 'jeans',
-		label: 'Jeans',
-		sizingScheme: 'standardBottoms',
-		isCommon: true,
-		hasGenderVariant: false
-	},
-	{
-		key: 'skirt',
-		label: 'Skirt',
-		sizingScheme: 'standardBottoms',
-		isCommon: false,
-		hasGenderVariant: false
-	},
-	{
-		key: 'dress',
-		label: 'Dress',
-		sizingScheme: 'standardTops',
-		isCommon: false,
-		hasGenderVariant: false
-	},
-	{
-		key: 'belt',
-		label: 'Belt',
-		sizingScheme: 'standardBottoms',
-		isCommon: false,
-		hasGenderVariant: false
-	},
-	{ key: 'socks', label: 'Socks', sizingScheme: 'none', isCommon: false, hasGenderVariant: false },
-	{
-		key: 'underwear',
-		label: 'Underwear',
-		sizingScheme: 'standardTops',
-		isCommon: false,
-		hasGenderVariant: false
-	},
-	{
-		key: 'sunglasses',
-		label: 'Sunglasses',
-		sizingScheme: 'none',
-		isCommon: false,
-		hasGenderVariant: false
-	},
-	{
-		key: 'slides',
-		label: 'Slides',
-		sizingScheme: 'gendered',
-		isCommon: false,
-		hasGenderVariant: true
-	}
+	{ key: 'jersey', label: 'Jersey', sizingScheme: 'standardTops', isCommon: true },
+	{ key: 'shirt', label: 'Shirt', sizingScheme: 'standardTops', isCommon: true },
+	{ key: 'shorts', label: 'Shorts', sizingScheme: 'standardBottoms', isCommon: true },
+	{ key: 'shoes', label: 'Shoes', sizingScheme: 'gendered', isCommon: true },
+	{ key: 'jeans', label: 'Jeans', sizingScheme: 'standardBottoms', isCommon: true },
+	{ key: 'skirt', label: 'Skirt', sizingScheme: 'standardBottoms', isCommon: false },
+	{ key: 'dress', label: 'Dress', sizingScheme: 'standardTops', isCommon: false },
+	{ key: 'belt', label: 'Belt', sizingScheme: 'standardBottoms', isCommon: false },
+	{ key: 'socks', label: 'Socks', sizingScheme: 'none', isCommon: false },
+	{ key: 'underwear', label: 'Underwear', sizingScheme: 'standardTops', isCommon: false },
+	{ key: 'sunglasses', label: 'Sunglasses', sizingScheme: 'none', isCommon: false },
+	{ key: 'slides', label: 'Slides', sizingScheme: 'gendered', isCommon: false }
 ];
 
 export const COMMON_MATERIAL_TYPES = MATERIAL_TYPES.filter((type) => type.isCommon);
