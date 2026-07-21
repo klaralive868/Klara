@@ -8,14 +8,17 @@
 	import CategoryTagger from './CategoryTagger.svelte';
 	import ImageUploader from './ImageUploader.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
-	import { PLACEHOLDER_CATEGORIES } from '$lib/catalog/placeholder-categories';
-	import type { CatalogItem } from '$lib/catalog/types';
+	import type { CatalogCategory, CatalogItem } from '$lib/catalog/types';
 
 	let {
 		initial,
+		initialCategoryIds = [],
+		categories,
 		message
 	}: {
 		initial?: CatalogItem;
+		initialCategoryIds?: string[];
+		categories: readonly CatalogCategory[];
 		message?: string;
 	} = $props();
 
@@ -30,9 +33,7 @@
 	// Stock has no backing table yet (ticket #19 wires real persistence) —
 	// this stays local-only and visual.
 	let stockQuantities = $state<Record<string, number>>({});
-	// Categories have no backing table yet either (ticket 4 wires real
-	// tagging + publish-gating) — local-only and visual for now.
-	let categoryIds = $state<string[]>([]);
+	let categoryIds = $state<string[]>(untrack(() => [...initialCategoryIds]));
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
 
@@ -94,7 +95,7 @@
 
 	<div>
 		<p class="mb-2 text-sm font-medium">Categories</p>
-		<CategoryTagger categories={PLACEHOLDER_CATEGORIES} bind:selected={categoryIds} />
+		<CategoryTagger {categories} bind:selected={categoryIds} />
 	</div>
 
 	<ImageUploader />
@@ -110,10 +111,8 @@
 			</p>
 			<div class="flex flex-wrap items-center gap-2">
 				{#if initial.status === 'draft'}
+					<Button type="submit" formaction="?/publish">Publish</Button>
 					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
-					<p class="text-sm text-muted-foreground">
-						Publishing arrives once items can be tagged with categories.
-					</p>
 				{:else if initial.status === 'published'}
 					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
 				{:else if initial.status === 'archived'}

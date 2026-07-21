@@ -33,3 +33,9 @@ export const SECOND_ORG_PASSWORD = 'password123';
 // the 5/15min limit, exactly the collision INVITER_EMAIL exists to avoid.
 export const CATALOG_OWNER_EMAIL = 'e2e-catalog-owner@example.com';
 export const CATALOG_OWNER_PASSWORD = 'password123';
+
+// catalog-categories.spec.ts's own dedicated user, same reasoning as
+// CATALOG_OWNER_EMAIL — kept separate so its sign-ins don't share a
+// rate-limit bucket with catalog-item-crud.spec.ts's.
+export const CATEGORIES_OWNER_EMAIL = 'e2e-categories-owner@example.com';
+export const CATEGORIES_OWNER_PASSWORD = 'password123';

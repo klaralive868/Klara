@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { PlaceholderCategory } from '$lib/catalog/placeholder-categories';
+	import type { CatalogCategory } from '$lib/catalog/types';
 
 	let {
 		categories,
 		selected = $bindable([])
-	}: { categories: readonly PlaceholderCategory[]; selected: string[] } = $props();
+	}: { categories: readonly CatalogCategory[]; selected: string[] } = $props();
 
 	const topLevel = $derived(categories.filter((category) => category.parentId === null));
 
@@ -23,6 +23,8 @@
 			<label class="flex items-center gap-1.5 text-sm">
 				<input
 					type="checkbox"
+					name="categoryIds"
+					value={category.id}
 					checked={selected.includes(category.id)}
 					onchange={() => toggle(category.id)}
 				/>
@@ -36,6 +38,8 @@
 							<label class="flex items-center gap-1.5 text-sm">
 								<input
 									type="checkbox"
+									name="categoryIds"
+									value={subcategory.id}
 									checked={selected.includes(subcategory.id)}
 									onchange={() => toggle(subcategory.id)}
 								/>
