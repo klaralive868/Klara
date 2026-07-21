@@ -1,11 +1,16 @@
 <script lang="ts">
 	import CatalogItemForm from '$lib/components/catalog/CatalogItemForm.svelte';
-	import type { PageData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
 <main class="mx-auto mt-16 max-w-sm">
 	<h1 class="mb-6 text-xl font-semibold">Edit item</h1>
-	<CatalogItemForm initial={data.item} />
+
+	{#if form?.success}
+		<p class="mb-4 text-sm font-normal text-green-700" role="status">{form.message}</p>
+	{/if}
+
+	<CatalogItemForm initial={data.item} message={form?.success ? undefined : form?.message} />
 </main>

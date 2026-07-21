@@ -21,3 +21,15 @@ export const OPERATOR_PASSWORD = 'password123';
 // Every invitee created by invite-claim.spec.ts uses this prefix so
 // global-teardown can find and remove them without tracking individual ids.
 export const INVITEE_EMAIL_PREFIX = 'e2e-invitee-';
+
+// A member of a genuinely different organization, for cross-organization
+// denied-access checks (e.g. catalog-item-crud.spec.ts).
+export const SECOND_ORG_EMAIL = 'e2e-second-org-member@example.com';
+export const SECOND_ORG_PASSWORD = 'password123';
+
+// catalog-item-crud.spec.ts's own dedicated user (same org as TEST_USER_EMAIL)
+// — its 3 sign-ins would otherwise share TEST_USER_EMAIL's rate-limit bucket
+// with auth.spec.ts's own several sign-ins and push the combined total over
+// the 5/15min limit, exactly the collision INVITER_EMAIL exists to avoid.
+export const CATALOG_OWNER_EMAIL = 'e2e-catalog-owner@example.com';
+export const CATALOG_OWNER_PASSWORD = 'password123';

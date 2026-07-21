@@ -1,12 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createAdminClient, E2E_TEST_ORG_NAME } from './admin-client';
+import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './admin-client';
 import {
+	CATALOG_OWNER_EMAIL,
+	CATALOG_OWNER_PASSWORD,
 	INVITER_EMAIL,
 	INVITER_PASSWORD,
 	MANAGER_EMAIL,
 	MANAGER_PASSWORD,
 	OPERATOR_EMAIL,
 	OPERATOR_PASSWORD,
+	SECOND_ORG_EMAIL,
+	SECOND_ORG_PASSWORD,
 	TEST_USER_EMAIL,
 	TEST_USER_PASSWORD
 } from './test-user';
@@ -49,7 +53,14 @@ export default async function globalSetup() {
 	// paginates (default 50/page) — perPage keeps this correct even as the
 	// local dev auth.users table grows past that.
 	const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-	const staleEmails = new Set([TEST_USER_EMAIL, INVITER_EMAIL, MANAGER_EMAIL, OPERATOR_EMAIL]);
+	const staleEmails = new Set([
+		TEST_USER_EMAIL,
+		INVITER_EMAIL,
+		MANAGER_EMAIL,
+		OPERATOR_EMAIL,
+		SECOND_ORG_EMAIL,
+		CATALOG_OWNER_EMAIL
+	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
 			await admin.auth.admin.deleteUser(candidate.id);
@@ -68,6 +79,13 @@ export default async function globalSetup() {
 	await createActiveMember(admin, organization.id, TEST_USER_EMAIL, TEST_USER_PASSWORD, 'owner');
 	await createActiveMember(admin, organization.id, INVITER_EMAIL, INVITER_PASSWORD, 'owner');
 	await createActiveMember(admin, organization.id, MANAGER_EMAIL, MANAGER_PASSWORD, 'manager');
+	await createActiveMember(
+		admin,
+		organization.id,
+		CATALOG_OWNER_EMAIL,
+		CATALOG_OWNER_PASSWORD,
+		'owner'
+	);
 
 	const operatorUser = await createActiveMember(
 		admin,
@@ -84,4 +102,20 @@ export default async function globalSetup() {
 			`Failed to create e2e operator row for ${OPERATOR_EMAIL}: ${operatorError.message}`
 		);
 	}
+
+	const { data: secondOrganization, error: secondOrgError } = await admin
+		.from('organizations')
+		.insert({ name: E2E_SECOND_ORG_NAME })
+		.select()
+		.single();
+	if (secondOrgError || !secondOrganization) {
+		throw new Error(`Failed to create e2e second test organization: ${secondOrgError?.message}`);
+	}
+	await createActiveMember(
+		admin,
+		secondOrganization.id,
+		SECOND_ORG_EMAIL,
+		SECOND_ORG_PASSWORD,
+		'owner'
+	);
 }
