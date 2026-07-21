@@ -8,7 +8,7 @@
 
 	const id = $props.id();
 
-	// Local-only preview state — no backend/storage yet (ticket 6 wires real
+	// Local-only preview state — no backend/storage yet (ticket #18 wires real
 	// Supabase Storage upload). Object URLs are revoked on removal and on
 	// unmount so previewing images doesn't leak memory.
 	let images = $state<LocalImage[]>([]);
@@ -70,11 +70,11 @@
 
 	{#if images.length > 0}
 		<div class="mt-3 flex flex-wrap gap-3">
-			{#each images as image (image.id)}
+			{#each images as image, index (image.id)}
 				<div class="flex flex-col items-center gap-1">
 					<img
 						src={image.url}
-						alt=""
+						alt="Image {index + 1} preview"
 						class="h-20 w-20 rounded-md border border-border object-cover"
 					/>
 					{#if primaryId === image.id}
