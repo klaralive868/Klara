@@ -128,6 +128,29 @@ test('create top-level + subcategory, tag an item with both at once, and gate/al
 	await page.reload({ waitUntil: 'networkidle' });
 	await expect(page.getByLabel(topLevelName)).toBeChecked();
 	await expect(page.getByLabel(subcategoryName)).toBeChecked();
+
+	// Regression check: a direct POST to ?/publish on an item that is no
+	// longer a draft (it's published now) must be rejected AND must not
+	// touch its tags. The UI has no Publish button left to click, so this
+	// exercises the action directly, submitting a *different* category
+	// selection (empty) than what's saved — an earlier version synced
+	// (overwriting) tags before checking the draft-status precondition, so
+	// this would have silently wiped the tags of a non-draft item even
+	// though the request itself failed.
+	const topLevelCategoryId = await page.getByLabel(topLevelName).getAttribute('value');
+	if (!topLevelCategoryId) throw new Error('e2e setup failure: category checkbox has no value');
+
+	const body = await page.evaluate(async (categoryId) => {
+		const formData = new FormData();
+		formData.set('categoryIds', categoryId);
+		const res = await fetch(`${location.pathname}?/publish`, { method: 'POST', body: formData });
+		return res.json();
+	}, topLevelCategoryId);
+	expect(body).toMatchObject({ type: 'failure', status: 404 });
+
+	await page.reload({ waitUntil: 'networkidle' });
+	await expect(page.getByLabel(topLevelName)).toBeChecked();
+	await expect(page.getByLabel(subcategoryName)).toBeChecked();
 });
 
 test("a different organization's member cannot see or tag with this organization's categories", async ({

@@ -99,24 +99,19 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const categoryIds = formData.getAll('categoryIds').map(String);
 
-		// Checked before syncing — the item's existing tags must survive an
-		// unpublishable (zero-category) attempt untouched, not be wiped by the
-		// sync's delete before this guard ever runs.
+		// Checked before touching anything — the item's existing tags must
+		// survive an unpublishable (zero-category) attempt untouched.
 		if (categoryIds.length === 0) {
 			return fail(400, { message: 'Add at least one category before publishing.' });
 		}
 
-		const { error: tagError } = await locals.supabase.rpc('sync_catalog_item_categories', {
-			p_item_id: params.id,
-			p_category_ids: categoryIds
-		});
-		if (tagError) {
-			return fail(500, { message: 'Could not publish the item. Please try again.' });
-		}
-
-		// Only a genuinely draft item can be published directly — mirrors the
-		// same status-precondition pattern as unarchive, so a direct POST can't
-		// force an unexpected transition.
+		// The status transition runs BEFORE the tag sync, and gates it: only a
+		// genuinely draft item can be published directly (mirrors the same
+		// status-precondition pattern as unarchive, so a direct POST can't
+		// force an unexpected transition). Syncing tags first would mutate an
+		// archived or already-published item's tags even though publishing
+		// itself then fails — the write and the confirmation that the write
+		// is valid must happen in that order, not the reverse.
 		const { data, error: updateError } = await locals.supabase
 			.from('catalog_items')
 			.update({ status: 'published' })
@@ -130,6 +125,14 @@ export const actions: Actions = {
 		}
 		if (!data) {
 			return fail(404, { message: 'Item not found or not a draft.' });
+		}
+
+		const { error: tagError } = await locals.supabase.rpc('sync_catalog_item_categories', {
+			p_item_id: params.id,
+			p_category_ids: categoryIds
+		});
+		if (tagError) {
+			return fail(500, { message: 'Could not publish the item. Please try again.' });
 		}
 
 		return { success: true, message: 'Item published.' };
