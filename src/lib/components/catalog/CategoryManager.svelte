@@ -12,6 +12,22 @@
 	function subcategoriesOf(parentId: string) {
 		return categories.filter((category) => category.parentId === parentId);
 	}
+
+	// Deleting a top-level category cascades to its subcategories (and their
+	// item tags) at the database level — confirm first so that isn't a
+	// surprise, since the "Delete" button otherwise gives no indication.
+	function confirmTopLevelDelete(event: MouseEvent, category: CatalogCategory) {
+		const subcategoryCount = subcategoriesOf(category.id).length;
+		if (subcategoryCount === 0) return;
+
+		const noun = subcategoryCount === 1 ? 'subcategory' : 'subcategories';
+		const confirmed = confirm(
+			`Deleting "${category.name}" will also delete its ${subcategoryCount} ${noun}. Continue?`
+		);
+		if (!confirmed) {
+			event.preventDefault();
+		}
+	}
 </script>
 
 <div class="space-y-6">
@@ -30,7 +46,14 @@
 					<input type="hidden" name="id" value={category.id} />
 					<Input name="name" value={category.name} aria-label="Category name" class="max-w-xs" />
 					<Button type="submit">Save</Button>
-					<Button type="submit" formaction="?/delete" variant="outline">Delete</Button>
+					<Button
+						type="submit"
+						formaction="?/delete"
+						variant="outline"
+						onclick={(event) => confirmTopLevelDelete(event, category)}
+					>
+						Delete
+					</Button>
 				</form>
 
 				<ul class="mt-3 ml-6 space-y-2">

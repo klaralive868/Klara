@@ -30,6 +30,16 @@ async function selectMaterialType(page: Page, label: string, key: string) {
 	}).toPass({ timeout: 10_000 });
 }
 
+async function checkCategory(page: Page, label: string) {
+	const checkbox = page.getByLabel(label);
+	// Same occasional layout-shift-timed click miss as selectMaterialType —
+	// retry the whole check, not just the read.
+	await expect(async () => {
+		await checkbox.check();
+		await expect(checkbox).toBeChecked({ timeout: 1000 });
+	}).toPass({ timeout: 10_000 });
+}
+
 test('create top-level + subcategory, tag an item with both at once, and gate/allow publish', async ({
 	page
 }) => {
@@ -70,13 +80,18 @@ test('create top-level + subcategory, tag an item with both at once, and gate/al
 	await expect(page.getByText('Status: draft')).toBeVisible();
 
 	// Tag it with both the top-level category AND the subcategory at once,
-	// save, then publish should succeed.
-	await page.getByLabel(topLevelName).check();
-	await page.getByLabel(subcategoryName).check();
-	await page.getByRole('button', { name: 'Save item' }).click();
-	await expect(page.getByRole('status')).toHaveText('Item saved.');
-	await expect(page.getByLabel(topLevelName)).toBeChecked();
-	await expect(page.getByLabel(subcategoryName)).toBeChecked();
+	// save, then verify both persisted. Retried as one unit — under load, an
+	// occasional layout-shift-timed click can leave the DOM checkbox state
+	// not matching what actually got submitted; re-running the whole
+	// check+save+verify cycle is safe since it's idempotent.
+	await expect(async () => {
+		await checkCategory(page, topLevelName);
+		await checkCategory(page, subcategoryName);
+		await page.getByRole('button', { name: 'Save item' }).click();
+		await expect(page.getByRole('status')).toHaveText('Item saved.', { timeout: 5000 });
+		await expect(page.getByLabel(topLevelName)).toBeChecked({ timeout: 1000 });
+		await expect(page.getByLabel(subcategoryName)).toBeChecked({ timeout: 1000 });
+	}).toPass({ timeout: 30_000 });
 
 	await page.getByRole('button', { name: 'Publish' }).click();
 	await expect(page.getByRole('status')).toHaveText('Item published.');

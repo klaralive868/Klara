@@ -1,5 +1,4 @@
 import { error, fail } from '@sveltejs/kit';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import {
 	catalogCategoryFromRow,
 	catalogItemFromRow,
@@ -48,28 +47,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	};
 };
 
-// Replaces the item's full set of category tags with `categoryIds` — a
-// delete-then-insert sync rather than diffing, since an item's tag count is
-// always small (a handful of categories at most).
-async function syncCategoryTags(supabase: SupabaseClient, itemId: string, categoryIds: string[]) {
-	const { error: deleteError } = await supabase
-		.from('catalog_item_categories')
-		.delete()
-		.eq('item_id', itemId);
-	if (deleteError) {
-		return deleteError;
-	}
-
-	if (categoryIds.length === 0) {
-		return null;
-	}
-
-	const { error: insertError } = await supabase
-		.from('catalog_item_categories')
-		.insert(categoryIds.map((categoryId) => ({ item_id: itemId, category_id: categoryId })));
-	return insertError;
-}
-
 export const actions: Actions = {
 	update: async ({ request, params, locals }) => {
 		const formData = await request.formData();
@@ -99,7 +76,13 @@ export const actions: Actions = {
 			return fail(404, { message: 'Item not found.' });
 		}
 
-		const tagError = await syncCategoryTags(locals.supabase, params.id, categoryIds);
+		// A single RPC call, not two separate delete/insert requests — the
+		// function wraps both in one transaction, so a failed insert can't
+		// leave the item with its tags deleted and nothing re-applied.
+		const { error: tagError } = await locals.supabase.rpc('sync_catalog_item_categories', {
+			p_item_id: params.id,
+			p_category_ids: categoryIds
+		});
 		if (tagError) {
 			console.error('catalog: failed to sync item categories', tagError);
 			return fail(500, { message: 'Item saved, but categories could not be updated.' });
@@ -108,16 +91,23 @@ export const actions: Actions = {
 		return { success: true, message: 'Item saved.' };
 	},
 
-	publish: async ({ params, locals }) => {
-		const { count, error: countError } = await locals.supabase
-			.from('catalog_item_categories')
-			.select('id', { count: 'exact', head: true })
-			.eq('item_id', params.id);
+	publish: async ({ request, params, locals }) => {
+		// The categories checked in the form when Publish is clicked are what
+		// gate publishing — reading them here (rather than only the DB's prior
+		// state) means checking a category and clicking Publish directly
+		// (without clicking Save item first) isn't silently discarded.
+		const formData = await request.formData();
+		const categoryIds = formData.getAll('categoryIds').map(String);
 
-		if (countError) {
+		const { error: tagError } = await locals.supabase.rpc('sync_catalog_item_categories', {
+			p_item_id: params.id,
+			p_category_ids: categoryIds
+		});
+		if (tagError) {
 			return fail(500, { message: 'Could not publish the item. Please try again.' });
 		}
-		if (!count) {
+
+		if (categoryIds.length === 0) {
 			return fail(400, { message: 'Add at least one category before publishing.' });
 		}
 
