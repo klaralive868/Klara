@@ -12,5 +12,10 @@
 		<p class="mb-4 text-sm font-normal text-green-700" role="status">{form.message}</p>
 	{/if}
 
-	<CatalogItemForm initial={data.item} message={form?.success ? undefined : form?.message} />
+	<CatalogItemForm
+		initial={data.item}
+		initialCategoryIds={data.categoryIds}
+		categories={data.categories}
+		message={form?.success ? undefined : form?.message}
+	/>
 </main>

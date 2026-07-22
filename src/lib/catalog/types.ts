@@ -29,3 +29,20 @@ export function catalogItemFromRow(row: CatalogItemRow): CatalogItem {
 		status: row.status
 	};
 }
+
+export interface CatalogCategory {
+	id: string;
+	name: string;
+	parentId: string | null;
+}
+
+// Raw shape of a row as returned by Supabase (snake_case columns).
+export interface CatalogCategoryRow {
+	id: string;
+	name: string;
+	parent_id: string | null;
+}
+
+export function catalogCategoryFromRow(row: CatalogCategoryRow): CatalogCategory {
+	return { id: row.id, name: row.name, parentId: row.parent_id };
+}

@@ -3,6 +3,8 @@ import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './adm
 import {
 	CATALOG_OWNER_EMAIL,
 	CATALOG_OWNER_PASSWORD,
+	CATEGORIES_OWNER_EMAIL,
+	CATEGORIES_OWNER_PASSWORD,
 	INVITER_EMAIL,
 	INVITER_PASSWORD,
 	MANAGER_EMAIL,
@@ -59,7 +61,8 @@ export default async function globalSetup() {
 		MANAGER_EMAIL,
 		OPERATOR_EMAIL,
 		SECOND_ORG_EMAIL,
-		CATALOG_OWNER_EMAIL
+		CATALOG_OWNER_EMAIL,
+		CATEGORIES_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -84,6 +87,13 @@ export default async function globalSetup() {
 		organization.id,
 		CATALOG_OWNER_EMAIL,
 		CATALOG_OWNER_PASSWORD,
+		'owner'
+	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		CATEGORIES_OWNER_EMAIL,
+		CATEGORIES_OWNER_PASSWORD,
 		'owner'
 	);
 
