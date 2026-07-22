@@ -5,11 +5,11 @@ import {
 	type CatalogCategoryRow,
 	type CatalogItemRow
 } from '$lib/catalog/types';
-import { parseCatalogItemForm } from '$lib/server/catalog';
+import { parseCatalogItemForm, parseStockQuantities } from '$lib/server/catalog';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const [itemResult, categoriesResult, tagsResult] = await Promise.all([
+	const [itemResult, categoriesResult, tagsResult, stockResult] = await Promise.all([
 		locals.supabase
 			.from('catalog_items')
 			.select('id, name, description, price_cents, material_type, status')
@@ -19,7 +19,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			.from('catalog_categories')
 			.select('id, name, parent_id')
 			.order('created_at', { ascending: true }),
-		locals.supabase.from('catalog_item_categories').select('category_id').eq('item_id', params.id)
+		locals.supabase.from('catalog_item_categories').select('category_id').eq('item_id', params.id),
+		locals.supabase.from('catalog_item_stock').select('size, quantity').eq('item_id', params.id)
 	]);
 
 	if (itemResult.error) {
@@ -39,11 +40,22 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (tagsResult.error) {
 		console.error('catalog: failed to load item categories', tagsResult.error);
 	}
+	if (stockResult.error) {
+		console.error('catalog: failed to load item stock', stockResult.error);
+	}
+
+	// The reverse of parseStockQuantities' size-key convention: a NULL size
+	// (the sizeless case) maps back to the "quantity" key StockSelector uses.
+	const stockQuantities: Record<string, number> = {};
+	for (const row of stockResult.data ?? []) {
+		stockQuantities[row.size ?? 'quantity'] = row.quantity;
+	}
 
 	return {
 		item: catalogItemFromRow(itemResult.data as CatalogItemRow),
 		categories: ((categoriesResult.data ?? []) as CatalogCategoryRow[]).map(catalogCategoryFromRow),
-		categoryIds: (tagsResult.data ?? []).map((row) => row.category_id as string)
+		categoryIds: (tagsResult.data ?? []).map((row) => row.category_id as string),
+		stockQuantities
 	};
 };
 
@@ -56,6 +68,7 @@ export const actions: Actions = {
 		}
 
 		const categoryIds = formData.getAll('categoryIds').map(String);
+		const stockEntries = parseStockQuantities(formData.get('stockQuantities') as string | null);
 
 		const { data, error: updateError } = await locals.supabase
 			.from('catalog_items')
@@ -86,6 +99,20 @@ export const actions: Actions = {
 		if (tagError) {
 			console.error('catalog: failed to sync item categories', tagError);
 			return fail(500, { message: 'Item saved, but categories could not be updated.' });
+		}
+
+		// Same atomic replace-all reasoning as the category sync above — and
+		// this is also what reconciles stock rows when the material type's
+		// sizing scheme changed: the client already reset stockQuantities to
+		// only the new scheme's sizes, so the full-replace here naturally
+		// drops rows for sizes that no longer apply.
+		const { error: stockError } = await locals.supabase.rpc('sync_catalog_item_stock', {
+			p_item_id: params.id,
+			p_entries: stockEntries
+		});
+		if (stockError) {
+			console.error('catalog: failed to sync item stock', stockError);
+			return fail(500, { message: 'Item saved, but stock could not be updated.' });
 		}
 
 		return { success: true, message: 'Item saved.' };

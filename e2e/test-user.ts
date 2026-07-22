@@ -39,3 +39,8 @@ export const CATALOG_OWNER_PASSWORD = 'password123';
 // rate-limit bucket with catalog-item-crud.spec.ts's.
 export const CATEGORIES_OWNER_EMAIL = 'e2e-categories-owner@example.com';
 export const CATEGORIES_OWNER_PASSWORD = 'password123';
+
+// catalog-stock.spec.ts's own dedicated user, same reasoning as the other
+// catalog spec-file-scoped users above.
+export const STOCK_OWNER_EMAIL = 'e2e-stock-owner@example.com';
+export const STOCK_OWNER_PASSWORD = 'password123';

@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { parseCatalogItemForm } from '$lib/server/catalog';
+import { parseCatalogItemForm, parseStockQuantities } from '$lib/server/catalog';
 import { catalogCategoryFromRow, type CatalogCategoryRow } from '$lib/catalog/types';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -26,6 +26,7 @@ export const actions: Actions = {
 		}
 
 		const categoryIds = formData.getAll('categoryIds').map(String);
+		const stockEntries = parseStockQuantities(formData.get('stockQuantities') as string | null);
 
 		// organization_id defaults to the caller's own organization (see the
 		// catalog_items migration) — never accepted from the client.
@@ -55,6 +56,18 @@ export const actions: Actions = {
 				// failed. Not worth failing the whole creation over; the item is
 				// reachable from the list and its categories can be fixed there.
 				console.error('catalog: failed to tag new item with categories', tagError);
+			}
+		}
+
+		if (stockEntries.length > 0) {
+			const { error: stockError } = await locals.supabase.rpc('sync_catalog_item_stock', {
+				p_item_id: created.id,
+				p_entries: stockEntries
+			});
+			if (stockError) {
+				// Same reasoning as the category-tagging failure above — the item
+				// itself was created; stock can be fixed from the edit screen.
+				console.error('catalog: failed to set stock for new item', stockError);
 			}
 		}
 

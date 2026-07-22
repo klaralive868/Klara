@@ -13,11 +13,13 @@
 	let {
 		initial,
 		initialCategoryIds = [],
+		initialStockQuantities = {},
 		categories,
 		message
 	}: {
 		initial?: CatalogItem;
 		initialCategoryIds?: string[];
+		initialStockQuantities?: Record<string, number>;
 		categories: readonly CatalogCategory[];
 		message?: string;
 	} = $props();
@@ -30,9 +32,9 @@
 	let description = $state(untrack(() => initial?.description ?? ''));
 	let price = $state(untrack(() => (initial ? (initial.priceCents / 100).toFixed(2) : '')));
 	let materialType = $state(untrack(() => initial?.materialType ?? ''));
-	// Stock has no backing table yet (ticket #19 wires real persistence) —
-	// this stays local-only and visual.
-	let stockQuantities = $state<Record<string, number>>({});
+	let stockQuantities = $state<Record<string, number>>(
+		untrack(() => ({ ...initialStockQuantities }))
+	);
 	let categoryIds = $state<string[]>(untrack(() => [...initialCategoryIds]));
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
@@ -89,6 +91,7 @@
 	{#if selectedType}
 		<div>
 			<p class="mb-2 text-sm font-medium">Stock</p>
+			<input type="hidden" name="stockQuantities" value={JSON.stringify(stockQuantities)} />
 			<StockSelector sizingScheme={selectedType.sizingScheme} bind:quantities={stockQuantities} />
 		</div>
 	{/if}

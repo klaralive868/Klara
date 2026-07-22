@@ -15,6 +15,7 @@
 	<CatalogItemForm
 		initial={data.item}
 		initialCategoryIds={data.categoryIds}
+		initialStockQuantities={data.stockQuantities}
 		categories={data.categories}
 		message={form?.success ? undefined : form?.message}
 	/>
