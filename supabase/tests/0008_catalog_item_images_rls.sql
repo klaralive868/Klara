@@ -4,7 +4,7 @@
 -- mark_catalog_item_image_primary RPC, plus storage.objects policies for
 -- the catalog-images bucket.
 begin;
-select plan(15);
+select plan(18);
 
 insert into public.organizations (id, name) values
   ('c0000000-0000-0000-0000-00000000000c', 'Org C'),
@@ -124,6 +124,28 @@ select is(
   (select is_primary from public.catalog_item_images where id = '50000000-0000-0000-0000-000000000002'),
   true,
   'org-c''s primary image is unaffected by the denied cross-organization attempts'
+);
+
+-- Deleting the current primary must not leave the item with zero primary
+-- images — the AFTER DELETE trigger should promote the oldest remaining one.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"c1111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
+select lives_ok(
+  $$delete from public.catalog_item_images where id = '50000000-0000-0000-0000-000000000002'$$,
+  'a member can delete the current primary image'
+);
+
+select is(
+  (select is_primary from public.catalog_item_images where id = '50000000-0000-0000-0000-000000000001'),
+  true,
+  'deleting the primary image auto-promotes the oldest remaining image to primary'
+);
+
+select is(
+  (select count(*)::int from public.catalog_item_images where item_id = '40000000-0000-0000-0000-000000000001' and is_primary),
+  1,
+  'exactly one image remains primary after the auto-promotion'
 );
 
 select * from finish();

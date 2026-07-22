@@ -12,6 +12,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 const IMAGE_BUCKET = 'catalog-images';
 const SIGNED_URL_EXPIRY_SECONDS = 3600;
+const MAX_IMAGE_BYTES = 5_000_000;
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const [itemResult, categoriesResult, tagsResult, imagesResult] = await Promise.all([
@@ -220,6 +221,33 @@ export const actions: Actions = {
 			return fail(400, { message: 'Choose at least one image to upload.' });
 		}
 
+		const oversized = files.find((file) => file.size > MAX_IMAGE_BYTES);
+		if (oversized) {
+			return fail(400, {
+				message: `"${oversized.name}" is larger than the ${MAX_IMAGE_BYTES / 1_000_000}MB limit per image.`
+			});
+		}
+
+		// All-or-nothing: if any file in the batch fails partway through, every
+		// earlier file committed so far in THIS call is rolled back (storage
+		// object + DB row) rather than left in place. Without this, a batch
+		// upload that fails on file 2 of 3 would silently leave file 1
+		// committed — the user sees a failure, retries the whole batch, and
+		// gets a duplicate of file 1.
+		const committed: { path: string; imageId: string }[] = [];
+
+		async function rollbackCommitted() {
+			if (committed.length === 0) return;
+			await locals.supabase
+				.from('catalog_item_images')
+				.delete()
+				.in(
+					'id',
+					committed.map((entry) => entry.imageId)
+				);
+			await locals.supabase.storage.from(IMAGE_BUCKET).remove(committed.map((entry) => entry.path));
+		}
+
 		for (const file of files) {
 			const imageId = crypto.randomUUID();
 			const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
@@ -229,18 +257,25 @@ export const actions: Actions = {
 				.from(IMAGE_BUCKET)
 				.upload(path, file, { contentType: file.type });
 			if (uploadError) {
+				await rollbackCommitted();
 				return fail(500, { message: 'Could not upload one or more images. Please try again.' });
 			}
 
+			// Explicit id, matching the filename — keeps the row id and the
+			// path's {image_id} segment as the same value, per the documented
+			// storage path convention.
 			const { error: insertError } = await locals.supabase
 				.from('catalog_item_images')
-				.insert({ item_id: params.id, storage_path: path });
+				.insert({ id: imageId, item_id: params.id, storage_path: path });
 			if (insertError) {
 				// The DB row is what makes an upload "real" — clean up the
 				// now-orphaned storage object rather than leaving it dangling.
 				await locals.supabase.storage.from(IMAGE_BUCKET).remove([path]);
+				await rollbackCommitted();
 				return fail(500, { message: 'Could not save the uploaded image. Please try again.' });
 			}
+
+			committed.push({ path, imageId });
 		}
 
 		return { success: true, message: 'Images uploaded.' };
