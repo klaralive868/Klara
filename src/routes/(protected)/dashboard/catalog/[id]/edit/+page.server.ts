@@ -105,34 +105,23 @@ export const actions: Actions = {
 			return fail(400, { message: 'Add at least one category before publishing.' });
 		}
 
-		// The status transition runs BEFORE the tag sync, and gates it: only a
-		// genuinely draft item can be published directly (mirrors the same
-		// status-precondition pattern as unarchive, so a direct POST can't
-		// force an unexpected transition). Syncing tags first would mutate an
-		// archived or already-published item's tags even though publishing
-		// itself then fails — the write and the confirmation that the write
-		// is valid must happen in that order, not the reverse.
-		const { data, error: updateError } = await locals.supabase
-			.from('catalog_items')
-			.update({ status: 'published' })
-			.eq('id', params.id)
-			.eq('status', 'draft')
-			.select('id')
-			.maybeSingle();
+		// A single RPC, not two separate writes — the status transition (only
+		// a genuinely draft item can be published directly, same precondition
+		// pattern as unarchive) and the tag sync happen in one transaction. If
+		// the sync fails, the status change rolls back with it, so the item
+		// never ends up published-in-the-DB-but-shown-as-draft with no way to
+		// retry (the draft-only precondition would 404 every subsequent
+		// attempt otherwise).
+		const { data: published, error: publishError } = await locals.supabase.rpc(
+			'publish_catalog_item',
+			{ p_item_id: params.id, p_category_ids: categoryIds }
+		);
 
-		if (updateError) {
+		if (publishError) {
 			return fail(500, { message: 'Could not publish the item. Please try again.' });
 		}
-		if (!data) {
+		if (!published) {
 			return fail(404, { message: 'Item not found or not a draft.' });
-		}
-
-		const { error: tagError } = await locals.supabase.rpc('sync_catalog_item_categories', {
-			p_item_id: params.id,
-			p_category_ids: categoryIds
-		});
-		if (tagError) {
-			return fail(500, { message: 'Could not publish the item. Please try again.' });
 		}
 
 		return { success: true, message: 'Item published.' };
