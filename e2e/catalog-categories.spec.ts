@@ -40,6 +40,14 @@ async function checkCategory(page: Page, label: string) {
 	}).toPass({ timeout: 10_000 });
 }
 
+async function uncheckCategory(page: Page, label: string) {
+	const checkbox = page.getByLabel(label);
+	await expect(async () => {
+		await checkbox.uncheck();
+		await expect(checkbox).not.toBeChecked({ timeout: 1000 });
+	}).toPass({ timeout: 10_000 });
+}
+
 test('create top-level + subcategory, tag an item with both at once, and gate/allow publish', async ({
 	page
 }) => {
@@ -92,6 +100,24 @@ test('create top-level + subcategory, tag an item with both at once, and gate/al
 		await expect(page.getByLabel(topLevelName)).toBeChecked({ timeout: 1000 });
 		await expect(page.getByLabel(subcategoryName)).toBeChecked({ timeout: 1000 });
 	}).toPass({ timeout: 30_000 });
+
+	// Regression check: uncheck both tags (without saving) and click Publish
+	// directly. It must be blocked, AND the item's already-saved tags must
+	// survive untouched — an earlier version synced (deleting the old tags)
+	// before checking the count, wiping them even on the blocked path.
+	await expect(async () => {
+		await uncheckCategory(page, topLevelName);
+		await uncheckCategory(page, subcategoryName);
+		await page.getByRole('button', { name: 'Publish' }).click();
+		await expect(page.getByRole('alert')).toHaveText(
+			'Add at least one category before publishing.',
+			{ timeout: 5000 }
+		);
+	}).toPass({ timeout: 30_000 });
+	await expect(page.getByText('Status: draft')).toBeVisible();
+	await page.reload({ waitUntil: 'networkidle' });
+	await expect(page.getByLabel(topLevelName)).toBeChecked();
+	await expect(page.getByLabel(subcategoryName)).toBeChecked();
 
 	await page.getByRole('button', { name: 'Publish' }).click();
 	await expect(page.getByRole('status')).toHaveText('Item published.');
