@@ -6,7 +6,7 @@ import {
 	type CatalogItemImageRow,
 	type CatalogItemRow
 } from '$lib/catalog/types';
-import { parseCatalogItemForm } from '$lib/server/catalog';
+import { parseCatalogItemForm, parseStockQuantities } from '$lib/server/catalog';
 import { getActiveOrganizationId } from '$lib/server/organization';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -15,7 +15,7 @@ const SIGNED_URL_EXPIRY_SECONDS = 3600;
 const MAX_IMAGE_BYTES = 5_000_000;
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const [itemResult, categoriesResult, tagsResult, imagesResult] = await Promise.all([
+	const [itemResult, categoriesResult, tagsResult, stockResult, imagesResult] = await Promise.all([
 		locals.supabase
 			.from('catalog_items')
 			.select('id, name, description, price_cents, material_type, status')
@@ -26,6 +26,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			.select('id, name, parent_id')
 			.order('created_at', { ascending: true }),
 		locals.supabase.from('catalog_item_categories').select('category_id').eq('item_id', params.id),
+		locals.supabase.from('catalog_item_stock').select('size, quantity').eq('item_id', params.id),
 		locals.supabase
 			.from('catalog_item_images')
 			.select('id, storage_path, is_primary')
@@ -49,6 +50,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 	if (tagsResult.error) {
 		console.error('catalog: failed to load item categories', tagsResult.error);
+	}
+	if (stockResult.error) {
+		console.error('catalog: failed to load item stock', stockResult.error);
+	}
+
+	// The reverse of parseStockQuantities' size-key convention: a NULL size
+	// (the sizeless case) maps back to the "quantity" key StockSelector uses.
+	const stockQuantities: Record<string, number> = {};
+	for (const row of stockResult.data ?? []) {
+		stockQuantities[row.size ?? 'quantity'] = row.quantity;
 	}
 
 	let images: { id: string; isPrimary: boolean; url: string }[] = [];
@@ -77,6 +88,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		item: catalogItemFromRow(itemResult.data as CatalogItemRow),
 		categories: ((categoriesResult.data ?? []) as CatalogCategoryRow[]).map(catalogCategoryFromRow),
 		categoryIds: (tagsResult.data ?? []).map((row) => row.category_id as string),
+		stockQuantities,
 		images
 	};
 };
@@ -90,6 +102,7 @@ export const actions: Actions = {
 		}
 
 		const categoryIds = formData.getAll('categoryIds').map(String);
+		const stockEntries = parseStockQuantities(formData.get('stockQuantities') as string | null);
 
 		const { data, error: updateError } = await locals.supabase
 			.from('catalog_items')
@@ -122,16 +135,33 @@ export const actions: Actions = {
 			return fail(500, { message: 'Item saved, but categories could not be updated.' });
 		}
 
+		// Same atomic replace-all reasoning as the category sync above — and
+		// this is also what reconciles stock rows when the material type's
+		// sizing scheme changed: the client already reset stockQuantities to
+		// only the new scheme's sizes, so the full-replace here naturally
+		// drops rows for sizes that no longer apply.
+		const { error: stockError } = await locals.supabase.rpc('sync_catalog_item_stock', {
+			p_item_id: params.id,
+			p_entries: stockEntries
+		});
+		if (stockError) {
+			console.error('catalog: failed to sync item stock', stockError);
+			return fail(500, { message: 'Item saved, but stock could not be updated.' });
+		}
+
 		return { success: true, message: 'Item saved.' };
 	},
 
 	publish: async ({ request, params, locals }) => {
-		// The categories checked in the form when Publish is clicked are what
-		// gate publishing — reading them here (rather than only the DB's prior
-		// state) means checking a category and clicking Publish directly
-		// (without clicking Save item first) isn't silently discarded.
+		// The categories AND stock quantities checked/entered in the form when
+		// Publish is clicked are what get persisted — reading them here
+		// (rather than only the DB's prior state) means clicking Publish
+		// directly, without clicking Save item first, doesn't silently
+		// discard whatever the user just changed. Both buttons submit the
+		// same <form>, so both fields are present in this submission too.
 		const formData = await request.formData();
 		const categoryIds = formData.getAll('categoryIds').map(String);
+		const stockEntries = parseStockQuantities(formData.get('stockQuantities') as string | null);
 
 		// Checked before touching anything — the item's existing tags must
 		// survive an unpublishable (zero-category) attempt untouched.
@@ -156,6 +186,20 @@ export const actions: Actions = {
 		}
 		if (!published) {
 			return fail(404, { message: 'Item not found or not a draft.' });
+		}
+
+		// Stock isn't part of publish_catalog_item's own transaction (it gates
+		// on categories, not stock), but still needs syncing here for the same
+		// reason categoryIds does — otherwise a Publish click that skipped
+		// Save item would leave the just-published item showing stale
+		// quantities with no error telling the user why.
+		const { error: stockError } = await locals.supabase.rpc('sync_catalog_item_stock', {
+			p_item_id: params.id,
+			p_entries: stockEntries
+		});
+		if (stockError) {
+			console.error('catalog: failed to sync item stock on publish', stockError);
+			return fail(500, { message: 'Item published, but stock could not be updated.' });
 		}
 
 		return { success: true, message: 'Item published.' };

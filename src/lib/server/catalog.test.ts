@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCatalogItemForm } from './catalog';
+import { parseCatalogItemForm, parseStockQuantities } from './catalog';
 
 function formData(fields: Record<string, string>): FormData {
 	const data = new FormData();
@@ -77,5 +77,46 @@ describe('parseCatalogItemForm', () => {
 			formData({ name: 'Item', price: '1.005', materialType: 'jersey' })
 		);
 		expect(result.ok && result.value.priceCents).toBe(101);
+	});
+});
+
+describe('parseStockQuantities', () => {
+	it('maps sized entries by their size key', () => {
+		expect(parseStockQuantities(JSON.stringify({ M: 5, L: 3 }))).toEqual(
+			expect.arrayContaining([
+				{ size: 'M', quantity: 5 },
+				{ size: 'L', quantity: 3 }
+			])
+		);
+	});
+
+	it('maps the sizeless "quantity" key to a null size', () => {
+		expect(parseStockQuantities(JSON.stringify({ quantity: 7 }))).toEqual([
+			{ size: null, quantity: 7 }
+		]);
+	});
+
+	it('returns an empty array for null input', () => {
+		expect(parseStockQuantities(null)).toEqual([]);
+	});
+
+	it('returns an empty array for malformed JSON', () => {
+		expect(parseStockQuantities('not json')).toEqual([]);
+	});
+
+	it('returns an empty array for a JSON array instead of an object', () => {
+		expect(parseStockQuantities('[1,2,3]')).toEqual([]);
+	});
+
+	it('drops entries with a negative, non-integer, or non-numeric quantity', () => {
+		expect(parseStockQuantities(JSON.stringify({ M: -1, L: 1.5, XL: 'abc', S: 4 }))).toEqual([
+			{ size: 'S', quantity: 4 }
+		]);
+	});
+
+	it('drops zero-quantity entries too — sync_catalog_item_stock would discard them anyway', () => {
+		expect(parseStockQuantities(JSON.stringify({ M: 0, S: 4 }))).toEqual([
+			{ size: 'S', quantity: 4 }
+		]);
 	});
 });
