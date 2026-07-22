@@ -16,6 +16,7 @@
 		initial={data.item}
 		initialCategoryIds={data.categoryIds}
 		categories={data.categories}
+		images={data.images}
 		message={form?.success ? undefined : form?.message}
 	/>
 </main>

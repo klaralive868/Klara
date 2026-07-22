@@ -1,75 +1,22 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { FieldError } from '$lib/components/ui/field/index.js';
+	import type { CatalogItemImage } from '$lib/catalog/types';
 
-	interface LocalImage {
-		id: string;
-		url: string;
-	}
+	let { images, message }: { images: readonly CatalogItemImage[]; message?: string } = $props();
 
 	const id = $props.id();
-
-	// Local-only preview state — no backend/storage yet (ticket #18 wires real
-	// Supabase Storage upload). Object URLs are revoked on removal and on
-	// unmount so previewing images doesn't leak memory.
-	let images = $state<LocalImage[]>([]);
-	let primaryId = $state<string | null>(null);
-
-	function onFilesSelected(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const files = Array.from(input.files ?? []);
-
-		for (const file of files) {
-			const imageId = crypto.randomUUID();
-			images.push({ id: imageId, url: URL.createObjectURL(file) });
-			// The first image uploaded for an item is auto-marked primary, so
-			// the common single-image case needs no extra step.
-			if (primaryId === null) {
-				primaryId = imageId;
-			}
-		}
-
-		// Reset so selecting the same file(s) again still fires a change event.
-		input.value = '';
-	}
-
-	function setPrimary(imageId: string) {
-		primaryId = imageId;
-	}
-
-	function removeImage(imageId: string) {
-		const index = images.findIndex((image) => image.id === imageId);
-		if (index === -1) return;
-
-		URL.revokeObjectURL(images[index].url);
-		images.splice(index, 1);
-
-		if (primaryId === imageId) {
-			primaryId = images[0]?.id ?? null;
-		}
-	}
-
-	$effect(() => {
-		return () => {
-			for (const image of images) {
-				URL.revokeObjectURL(image.url);
-			}
-		};
-	});
 </script>
 
 <div>
-	<label for="images-{id}" class="mb-2 block text-sm font-medium">Images</label>
-	<input
-		id="images-{id}"
-		type="file"
-		accept="image/*"
-		multiple
-		onchange={onFilesSelected}
-		class="text-sm"
-	/>
+	<p class="mb-2 text-sm font-medium">Images</p>
+
+	{#if message}
+		<FieldError errors={[{ message }]} />
+	{/if}
 
 	{#if images.length > 0}
-		<div class="mt-3 flex flex-wrap gap-3">
+		<div class="mb-3 flex flex-wrap gap-3">
 			{#each images as image, index (image.id)}
 				<div class="flex flex-col items-center gap-1">
 					<img
@@ -77,18 +24,31 @@
 						alt="Image {index + 1} preview"
 						class="h-20 w-20 rounded-md border border-border object-cover"
 					/>
-					{#if primaryId === image.id}
+					{#if image.isPrimary}
 						<span class="text-xs font-medium text-primary">Primary</span>
 					{:else}
-						<Button type="button" variant="ghost" size="xs" onclick={() => setPrimary(image.id)}>
-							Set primary
-						</Button>
+						<form method="POST" action="?/setPrimaryImage">
+							<input type="hidden" name="imageId" value={image.id} />
+							<Button type="submit" variant="ghost" size="xs">Set primary</Button>
+						</form>
 					{/if}
-					<Button type="button" variant="ghost" size="xs" onclick={() => removeImage(image.id)}>
-						Remove
-					</Button>
+					<form method="POST" action="?/removeImage">
+						<input type="hidden" name="imageId" value={image.id} />
+						<Button type="submit" variant="ghost" size="xs">Remove</Button>
+					</form>
 				</div>
 			{/each}
 		</div>
 	{/if}
+
+	<form
+		method="POST"
+		action="?/uploadImages"
+		enctype="multipart/form-data"
+		class="flex items-center gap-2"
+	>
+		<label for="images-{id}" class="sr-only">Choose images to upload</label>
+		<input id="images-{id}" type="file" name="images" accept="image/*" multiple class="text-sm" />
+		<Button type="submit" variant="outline">Upload</Button>
+	</form>
 </div>
