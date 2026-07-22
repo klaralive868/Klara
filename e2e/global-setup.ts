@@ -5,6 +5,8 @@ import {
 	CATALOG_OWNER_PASSWORD,
 	CATEGORIES_OWNER_EMAIL,
 	CATEGORIES_OWNER_PASSWORD,
+	IMAGES_OWNER_EMAIL,
+	IMAGES_OWNER_PASSWORD,
 	INVITER_EMAIL,
 	INVITER_PASSWORD,
 	MANAGER_EMAIL,
@@ -65,6 +67,7 @@ export default async function globalSetup() {
 		SECOND_ORG_EMAIL,
 		CATALOG_OWNER_EMAIL,
 		CATEGORIES_OWNER_EMAIL,
+		IMAGES_OWNER_EMAIL,
 		STOCK_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
@@ -102,10 +105,11 @@ export default async function globalSetup() {
 	await createActiveMember(
 		admin,
 		organization.id,
-		STOCK_OWNER_EMAIL,
-		STOCK_OWNER_PASSWORD,
+		IMAGES_OWNER_EMAIL,
+		IMAGES_OWNER_PASSWORD,
 		'owner'
 	);
+	await createActiveMember(admin, organization.id, STOCK_OWNER_EMAIL, STOCK_OWNER_PASSWORD, 'owner');
 
 	const operatorUser = await createActiveMember(
 		admin,

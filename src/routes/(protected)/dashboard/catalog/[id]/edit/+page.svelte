@@ -17,6 +17,7 @@
 		initialCategoryIds={data.categoryIds}
 		initialStockQuantities={data.stockQuantities}
 		categories={data.categories}
+		images={data.images}
 		message={form?.success ? undefined : form?.message}
 	/>
 </main>
