@@ -46,3 +46,17 @@ export interface CatalogCategoryRow {
 export function catalogCategoryFromRow(row: CatalogCategoryRow): CatalogCategory {
 	return { id: row.id, name: row.name, parentId: row.parent_id };
 }
+
+export interface CatalogItemImage {
+	id: string;
+	isPrimary: boolean;
+	/** A signed URL, computed server-side at load time — the bucket is private (ADR-0005). */
+	url: string;
+}
+
+// Raw shape of a row as returned by Supabase (snake_case columns).
+export interface CatalogItemImageRow {
+	id: string;
+	storage_path: string;
+	is_primary: boolean;
+}

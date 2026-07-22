@@ -8,17 +8,19 @@
 	import CategoryTagger from './CategoryTagger.svelte';
 	import ImageUploader from './ImageUploader.svelte';
 	import { getMaterialType } from '$lib/catalog/material-types';
-	import type { CatalogCategory, CatalogItem } from '$lib/catalog/types';
+	import type { CatalogCategory, CatalogItem, CatalogItemImage } from '$lib/catalog/types';
 
 	let {
 		initial,
 		initialCategoryIds = [],
 		categories,
+		images,
 		message
 	}: {
 		initial?: CatalogItem;
 		initialCategoryIds?: string[];
 		categories: readonly CatalogCategory[];
+		images?: readonly CatalogItemImage[];
 		message?: string;
 	} = $props();
 
@@ -98,8 +100,6 @@
 		<CategoryTagger {categories} bind:selected={categoryIds} />
 	</div>
 
-	<ImageUploader />
-
 	{#if message}
 		<FieldError errors={[{ message }]} />
 	{/if}
@@ -126,3 +126,9 @@
 		<Button type="submit" formaction={initial ? '?/update' : undefined}>Save item</Button>
 	</Field>
 </form>
+
+{#if initial && images}
+	<ImageUploader {images} />
+{:else if !initial}
+	<p class="text-sm text-muted-foreground">Save the item first to add images.</p>
+{/if}
