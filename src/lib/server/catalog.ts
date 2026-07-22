@@ -90,7 +90,12 @@ export function parseStockQuantities(raw: string | null): StockEntry[] {
 	const entries: StockEntry[] = [];
 	for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
 		const quantity = Number(value);
-		if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity < 0) {
+		// <= 0, not < 0: zero-quantity entries are dropped by
+		// sync_catalog_item_stock's own WHERE quantity > 0 anyway (a
+		// zero-stock size doesn't need a persisted row) — filtering them out
+		// here too avoids a pointless round trip for something the RPC would
+		// just discard.
+		if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
 			continue;
 		}
 		entries.push({ size: key === 'quantity' ? null : key, quantity });

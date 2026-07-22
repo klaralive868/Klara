@@ -119,12 +119,15 @@ export const actions: Actions = {
 	},
 
 	publish: async ({ request, params, locals }) => {
-		// The categories checked in the form when Publish is clicked are what
-		// gate publishing — reading them here (rather than only the DB's prior
-		// state) means checking a category and clicking Publish directly
-		// (without clicking Save item first) isn't silently discarded.
+		// The categories AND stock quantities checked/entered in the form when
+		// Publish is clicked are what get persisted — reading them here
+		// (rather than only the DB's prior state) means clicking Publish
+		// directly, without clicking Save item first, doesn't silently
+		// discard whatever the user just changed. Both buttons submit the
+		// same <form>, so both fields are present in this submission too.
 		const formData = await request.formData();
 		const categoryIds = formData.getAll('categoryIds').map(String);
+		const stockEntries = parseStockQuantities(formData.get('stockQuantities') as string | null);
 
 		// Checked before touching anything — the item's existing tags must
 		// survive an unpublishable (zero-category) attempt untouched.
@@ -149,6 +152,20 @@ export const actions: Actions = {
 		}
 		if (!published) {
 			return fail(404, { message: 'Item not found or not a draft.' });
+		}
+
+		// Stock isn't part of publish_catalog_item's own transaction (it gates
+		// on categories, not stock), but still needs syncing here for the same
+		// reason categoryIds does — otherwise a Publish click that skipped
+		// Save item would leave the just-published item showing stale
+		// quantities with no error telling the user why.
+		const { error: stockError } = await locals.supabase.rpc('sync_catalog_item_stock', {
+			p_item_id: params.id,
+			p_entries: stockEntries
+		});
+		if (stockError) {
+			console.error('catalog: failed to sync item stock on publish', stockError);
+			return fail(500, { message: 'Item published, but stock could not be updated.' });
 		}
 
 		return { success: true, message: 'Item published.' };

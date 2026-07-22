@@ -90,6 +90,43 @@ test('set stock on create, edit quantities, and persist across reload', async ({
 	await expect(stockInput(page, 'L')).toHaveValue('0');
 });
 
+test('editing stock and clicking Publish directly (without Save item first) persists the change', async ({
+	page
+}) => {
+	await signIn(page, STOCK_OWNER_EMAIL, STOCK_OWNER_PASSWORD);
+
+	// Publishing requires >=1 category — create one first.
+	const categoryName = uniqueName('Publish Stock Category');
+	await page.goto('/dashboard/catalog/categories', { waitUntil: 'networkidle' });
+	await page.getByLabel('New top-level category name').fill(categoryName);
+	await page.getByRole('button', { name: 'Add category' }).click();
+	await page.waitForLoadState('networkidle');
+
+	const itemName = uniqueName('E2E Publish Stock Item');
+	await page.goto('/dashboard/catalog/new', { waitUntil: 'networkidle' });
+	await page.getByLabel('Name').fill(itemName);
+	await page.getByLabel('Price (USD)').fill('45.00');
+	await selectMaterialType(page, 'Jersey', 'jersey');
+	await page.getByLabel(categoryName).check();
+	await page.getByRole('button', { name: 'Save item' }).click();
+	await expect(page).toHaveURL('/dashboard/catalog');
+
+	await page.getByRole('link', { name: itemName }).click();
+	await page.waitForLoadState('networkidle');
+
+	// Set stock, then click Publish directly — deliberately not Save item
+	// first, since that's exactly the path that used to silently drop the
+	// stock edit (categoryIds got the same fix earlier; stock didn't).
+	await stockInput(page, 'M').fill('15');
+	await page.getByRole('button', { name: 'Publish' }).click();
+	await expect(page.getByRole('status')).toHaveText('Item published.');
+
+	// Reload from the server and confirm the stock entered right before
+	// clicking Publish actually persisted, not just the in-memory form state.
+	await page.reload({ waitUntil: 'networkidle' });
+	await expect(stockInput(page, 'M')).toHaveValue('15');
+});
+
 test("a different organization's member cannot see or write this organization's stock", async ({
 	page,
 	browser

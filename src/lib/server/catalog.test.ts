@@ -113,4 +113,10 @@ describe('parseStockQuantities', () => {
 			{ size: 'S', quantity: 4 }
 		]);
 	});
+
+	it('drops zero-quantity entries too — sync_catalog_item_stock would discard them anyway', () => {
+		expect(parseStockQuantities(JSON.stringify({ M: 0, S: 4 }))).toEqual([
+			{ size: 'S', quantity: 4 }
+		]);
+	});
 });
