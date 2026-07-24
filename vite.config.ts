@@ -29,6 +29,13 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	ssr: {
+		// layerchart pulls in @dagrejs/dagre (used by chart types we don't render,
+		// e.g. Sankey) whose "module" build has no .mjs extension or local
+		// "type": "module" — left external, Vercel's Node runtime require()s it
+		// as CJS and fails. Bundling it inline avoids that resolution entirely.
+		noExternal: ['layerchart', '@dagrejs/dagre']
+	},
 	test: {
 		environment: 'node',
 		include: ['src/**/*.{test,spec}.{js,ts}'],
