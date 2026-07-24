@@ -62,3 +62,17 @@ export const LIST_TABLE_OWNER_PASSWORD = 'password123';
 // real to exercise.
 export const CUSTOMERS_OWNER_EMAIL = 'e2e-customers-owner@example.com';
 export const CUSTOMERS_OWNER_PASSWORD = 'password123';
+
+// admin-provisioning.spec.ts's freshly-invited owners use this email prefix,
+// and the organizations it creates use this name prefix, so global-teardown
+// can find and remove both without tracking individual ids (same pattern as
+// INVITEE_EMAIL_PREFIX).
+export const ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX = 'e2e-admin-owner-';
+export const ADMIN_PROVISIONED_ORG_NAME_PREFIX = 'E2E Admin Client ';
+
+// admin-provisioning.spec.ts's own dedicated non-operator user, so its
+// sign-in doesn't share a rate-limit bucket with MANAGER_EMAIL's several
+// other uses across invite-claim.spec.ts (same reasoning as the other
+// spec-file-scoped users above).
+export const ADMIN_PROVISIONING_NON_OPERATOR_EMAIL = 'e2e-admin-non-operator@example.com';
+export const ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD = 'password123';

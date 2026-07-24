@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './admin-client';
 import {
+	ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
+	ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
 	CATALOG_OWNER_EMAIL,
 	CATALOG_OWNER_PASSWORD,
 	CATEGORIES_OWNER_EMAIL,
@@ -74,7 +76,8 @@ export default async function globalSetup() {
 		IMAGES_OWNER_EMAIL,
 		STOCK_OWNER_EMAIL,
 		LIST_TABLE_OWNER_EMAIL,
-		CUSTOMERS_OWNER_EMAIL
+		CUSTOMERS_OWNER_EMAIL,
+		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -129,6 +132,13 @@ export default async function globalSetup() {
 		CUSTOMERS_OWNER_EMAIL,
 		CUSTOMERS_OWNER_PASSWORD,
 		'owner'
+	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
+		ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
+		'staff'
 	);
 
 	// A required text field and an optional select field — enough for
