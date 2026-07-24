@@ -2,6 +2,7 @@ import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './adm
 import {
 	CATALOG_OWNER_EMAIL,
 	CATEGORIES_OWNER_EMAIL,
+	CUSTOMERS_OWNER_EMAIL,
 	IMAGES_OWNER_EMAIL,
 	INVITEE_EMAIL_PREFIX,
 	INVITER_EMAIL,
@@ -30,6 +31,7 @@ export default async function globalTeardown() {
 			candidate.email === IMAGES_OWNER_EMAIL ||
 			candidate.email === STOCK_OWNER_EMAIL ||
 			candidate.email === LIST_TABLE_OWNER_EMAIL ||
+			candidate.email === CUSTOMERS_OWNER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX)
 	);
 	for (const user of staleUsers) {
