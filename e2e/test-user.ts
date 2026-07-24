@@ -54,3 +54,11 @@ export const STOCK_OWNER_PASSWORD = 'password123';
 // other catalog spec-file-scoped users above.
 export const LIST_TABLE_OWNER_EMAIL = 'e2e-list-table-owner@example.com';
 export const LIST_TABLE_OWNER_PASSWORD = 'password123';
+
+// customers-crud.spec.ts's own dedicated user, same reasoning as the
+// catalog spec-file-scoped users above. global-setup also seeds two
+// customer_field_definitions rows for this org (a required text field and
+// an optional select field) so the dynamic-field rendering has something
+// real to exercise.
+export const CUSTOMERS_OWNER_EMAIL = 'e2e-customers-owner@example.com';
+export const CUSTOMERS_OWNER_PASSWORD = 'password123';

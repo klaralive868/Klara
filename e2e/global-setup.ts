@@ -5,6 +5,8 @@ import {
 	CATALOG_OWNER_PASSWORD,
 	CATEGORIES_OWNER_EMAIL,
 	CATEGORIES_OWNER_PASSWORD,
+	CUSTOMERS_OWNER_EMAIL,
+	CUSTOMERS_OWNER_PASSWORD,
 	IMAGES_OWNER_EMAIL,
 	IMAGES_OWNER_PASSWORD,
 	INVITER_EMAIL,
@@ -71,7 +73,8 @@ export default async function globalSetup() {
 		CATEGORIES_OWNER_EMAIL,
 		IMAGES_OWNER_EMAIL,
 		STOCK_OWNER_EMAIL,
-		LIST_TABLE_OWNER_EMAIL
+		LIST_TABLE_OWNER_EMAIL,
+		CUSTOMERS_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -120,6 +123,40 @@ export default async function globalSetup() {
 		LIST_TABLE_OWNER_PASSWORD,
 		'owner'
 	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		CUSTOMERS_OWNER_EMAIL,
+		CUSTOMERS_OWNER_PASSWORD,
+		'owner'
+	);
+
+	// A required text field and an optional select field — enough for
+	// customers-crud.spec.ts to exercise both dynamic-field render paths
+	// (required-field validation, select-option validation) without needing
+	// its own seed script.
+	const { error: fieldDefError } = await admin.from('customer_field_definitions').insert([
+		{
+			organization_id: organization.id,
+			field_key: 'pet_name',
+			label: 'Pet name',
+			field_type: 'text',
+			required: true,
+			display_order: 1
+		},
+		{
+			organization_id: organization.id,
+			field_key: 'preferred_groomer',
+			label: 'Preferred groomer',
+			field_type: 'select',
+			options: ['Alex', 'Sam'],
+			required: false,
+			display_order: 2
+		}
+	]);
+	if (fieldDefError) {
+		throw new Error(`Failed to seed e2e customer field definitions: ${fieldDefError.message}`);
+	}
 
 	const operatorUser = await createActiveMember(
 		admin,

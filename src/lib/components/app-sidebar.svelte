@@ -1,10 +1,12 @@
 <script lang="ts">
+	import AddressBookIcon from '@tabler/icons-svelte/icons/address-book';
 	import DashboardIcon from '@tabler/icons-svelte/icons/dashboard';
 	import InnerShadowTopIcon from '@tabler/icons-svelte/icons/inner-shadow-top';
 	import ListIcon from '@tabler/icons-svelte/icons/list';
 	import PlusIcon from '@tabler/icons-svelte/icons/plus';
 	import ShieldIcon from '@tabler/icons-svelte/icons/shield';
 	import TagIcon from '@tabler/icons-svelte/icons/tag';
+	import UserPlusIcon from '@tabler/icons-svelte/icons/user-plus';
 	import UsersIcon from '@tabler/icons-svelte/icons/users';
 	import { resolve } from '$app/paths';
 	import NavDocuments from './nav-documents.svelte';
@@ -50,6 +52,19 @@
 		}
 	];
 
+	const customers = [
+		{
+			name: 'All customers',
+			url: resolve('/dashboard/customers'),
+			icon: AddressBookIcon
+		},
+		{
+			name: 'New customer',
+			url: resolve('/dashboard/customers/new'),
+			icon: UserPlusIcon
+		}
+	];
+
 	const navSecondary = $derived(
 		isOperator ? [{ title: 'Admin', url: resolve('/admin'), icon: ShieldIcon }] : []
 	);
@@ -73,6 +88,7 @@
 	<Sidebar.Content>
 		<NavDocuments items={dashboard} label="Dashboard" />
 		<NavDocuments items={catalog} label="Catalog" />
+		<NavDocuments items={customers} label="Customers" />
 		{#if navSecondary.length > 0}
 			<NavSecondary items={navSecondary} class="mt-auto" />
 		{/if}
