@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { getMembershipStatus } from '$lib/server/membership';
+import { isOperator } from '$lib/server/operator';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
@@ -13,7 +14,11 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const status = await getMembershipStatus(locals.supabase, user.id);
 
 	if (status === 'active') {
-		return { user };
+		// Drives whether the sidebar shows the "Admin" option — the (admin)
+		// guard is the actual enforcement point, this is display-only. Loaded
+		// here (not per-page) so every sidebar-shell page under (protected)
+		// gets it for free instead of re-querying it individually.
+		return { user, isOperator: await isOperator(locals.supabase, user.id) };
 	}
 
 	// A pending member (mid invite-claim) is forced to set-password regardless
