@@ -47,6 +47,14 @@ export function catalogCategoryFromRow(row: CatalogCategoryRow): CatalogCategory
 	return { id: row.id, name: row.name, parentId: row.parent_id };
 }
 
+// The "All items" table's row shape: a CatalogItem plus its stock, rolled
+// up from catalog_item_stock. `stockBySize` keys mirror StockSelector's own
+// convention — a sizeless item's single row lands under "quantity".
+export interface CatalogItemListRow extends CatalogItem {
+	stockBySize: Record<string, number>;
+	stockTotal: number;
+}
+
 export interface CatalogItemImage {
 	id: string;
 	isPrimary: boolean;

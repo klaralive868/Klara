@@ -9,6 +9,8 @@ import {
 	IMAGES_OWNER_PASSWORD,
 	INVITER_EMAIL,
 	INVITER_PASSWORD,
+	LIST_TABLE_OWNER_EMAIL,
+	LIST_TABLE_OWNER_PASSWORD,
 	MANAGER_EMAIL,
 	MANAGER_PASSWORD,
 	OPERATOR_EMAIL,
@@ -68,7 +70,8 @@ export default async function globalSetup() {
 		CATALOG_OWNER_EMAIL,
 		CATEGORIES_OWNER_EMAIL,
 		IMAGES_OWNER_EMAIL,
-		STOCK_OWNER_EMAIL
+		STOCK_OWNER_EMAIL,
+		LIST_TABLE_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -110,6 +113,13 @@ export default async function globalSetup() {
 		'owner'
 	);
 	await createActiveMember(admin, organization.id, STOCK_OWNER_EMAIL, STOCK_OWNER_PASSWORD, 'owner');
+	await createActiveMember(
+		admin,
+		organization.id,
+		LIST_TABLE_OWNER_EMAIL,
+		LIST_TABLE_OWNER_PASSWORD,
+		'owner'
+	);
 
 	const operatorUser = await createActiveMember(
 		admin,
