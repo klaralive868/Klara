@@ -4,7 +4,7 @@
 -- Also covers the customer_field_definitions unique(org, field_key)
 -- constraint and the select-type-requires-options check constraint.
 begin;
-select plan(23);
+select plan(25);
 
 insert into public.organizations (id, name) values
   ('a0000000-0000-0000-0000-00000000000a', 'Org A'),
@@ -129,6 +129,20 @@ select throws_ok(
   '23514',
   null,
   'a select-type field definition with no options is rejected'
+);
+
+select throws_ok(
+  $$insert into public.customer_field_definitions (field_key, label, field_type, options) values ('preferred_groomer', 'Preferred groomer', 'select', '[]'::jsonb)$$,
+  '23514',
+  null,
+  'a select-type field definition with an EMPTY options array is rejected'
+);
+
+select throws_ok(
+  $$insert into public.customer_field_definitions (field_key, label, field_type, options) values ('preferred_groomer', 'Preferred groomer', 'select', '"not an array"'::jsonb)$$,
+  '23514',
+  null,
+  'a select-type field definition with a non-array options value is rejected'
 );
 
 select lives_ok(
