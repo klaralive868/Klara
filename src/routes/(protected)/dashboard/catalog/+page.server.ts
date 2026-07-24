@@ -93,41 +93,55 @@ export const actions: Actions = {
 				return fail(500, { bulkMessage: 'Could not archive the selected items. Please try again.' });
 			}
 
-			return { success: true, bulkMessage: `${data?.length ?? 0} item(s) archived.` };
+			return { bulkMessage: `${data?.length ?? 0} item(s) archived.` };
 		}
 
-		// status === 'published'
-		let publishedCount = 0;
-		let skippedCount = 0;
-		for (const itemId of itemIds) {
-			const { data: tags, error: tagsError } = await locals.supabase
-				.from('catalog_item_categories')
-				.select('category_id')
-				.eq('item_id', itemId);
+		// status === 'published'. One batch query for every selected item's
+		// tags (rather than one SELECT per item), then every publish RPC
+		// in flight at once (rather than one at a time) — a sequential
+		// two-round-trips-per-item loop scales linearly with selection size
+		// and risks a function timeout at a few dozen items.
+		const { data: allTags, error: tagsError } = await locals.supabase
+			.from('catalog_item_categories')
+			.select('item_id, category_id')
+			.in('item_id', itemIds);
 
-			if (tagsError || !tags || tags.length === 0) {
-				skippedCount++;
-				continue;
-			}
-
-			const { data: published, error: publishError } = await locals.supabase.rpc(
-				'publish_catalog_item',
-				{ p_item_id: itemId, p_category_ids: tags.map((tag) => tag.category_id) }
-			);
-
-			if (publishError || !published) {
-				skippedCount++;
-				continue;
-			}
-
-			publishedCount++;
+		if (tagsError) {
+			return fail(500, { bulkMessage: 'Could not publish the selected items. Please try again.' });
 		}
+
+		const categoryIdsByItem = new Map<string, string[]>();
+		for (const row of allTags ?? []) {
+			const existing = categoryIdsByItem.get(row.item_id);
+			if (existing) {
+				existing.push(row.category_id);
+			} else {
+				categoryIdsByItem.set(row.item_id, [row.category_id]);
+			}
+		}
+
+		const publishableIds = itemIds.filter((id) => (categoryIdsByItem.get(id)?.length ?? 0) > 0);
+		const skippedCount = itemIds.length - publishableIds.length;
+
+		const results = await Promise.all(
+			publishableIds.map((itemId) =>
+				locals.supabase.rpc('publish_catalog_item', {
+					p_item_id: itemId,
+					p_category_ids: categoryIdsByItem.get(itemId)
+				})
+			)
+		);
+
+		const publishedCount = results.filter(({ data, error }) => !error && data).length;
+		const failedCount = publishableIds.length - publishedCount;
 
 		const parts = [`${publishedCount} item(s) published.`];
-		if (skippedCount > 0) {
-			parts.push(`${skippedCount} skipped (already published, or needs a category first).`);
+		if (skippedCount + failedCount > 0) {
+			parts.push(
+				`${skippedCount + failedCount} skipped (already published, or needs a category first).`
+			);
 		}
 
-		return { success: publishedCount > 0, bulkMessage: parts.join(' ') };
+		return { bulkMessage: parts.join(' ') };
 	}
 };

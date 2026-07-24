@@ -224,6 +224,7 @@
 		class="hidden"
 		use:enhance={() => {
 			bulkPending = true;
+			bulkMessage = null;
 			return async ({ result, update }) => {
 				bulkPending = false;
 				if (result.type === 'success' || result.type === 'failure') {
