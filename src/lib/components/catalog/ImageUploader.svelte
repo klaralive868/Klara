@@ -62,6 +62,7 @@
 			name="images"
 			accept="image/*"
 			multiple
+			tabindex="-1"
 			class="sr-only"
 		/>
 		<div class="flex flex-wrap items-center gap-3">

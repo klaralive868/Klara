@@ -84,26 +84,18 @@
 	<div class="space-y-3">
 		<div>
 			<p class="mb-1.5 text-sm font-medium">Male sizes</p>
-			<div class="flex flex-wrap gap-2">
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
 				{#each GENDERED_SIZES.male as size (size)}
-					{@render quantityInput(
-						`Male ${size}`,
-						size,
-						'h-9 w-16 rounded-3xl border border-input bg-transparent px-2 text-sm'
-					)}
+					{@render quantityInputStacked(`Male ${size}`, size)}
 				{/each}
 			</div>
 		</div>
 
 		<div>
 			<p class="mb-1.5 text-sm font-medium">Female sizes</p>
-			<div class="flex flex-wrap gap-2">
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
 				{#each GENDERED_SIZES.female as size (size)}
-					{@render quantityInput(
-						`Female ${size}`,
-						size,
-						'h-9 w-16 rounded-3xl border border-input bg-transparent px-2 text-sm'
-					)}
+					{@render quantityInputStacked(`Female ${size}`, size)}
 				{/each}
 			</div>
 		</div>
