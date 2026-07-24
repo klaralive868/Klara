@@ -98,7 +98,7 @@ export const actions: Actions = {
 			redirectTo: `${url.origin}/auth/confirm`
 		});
 		if (!result.ok) {
-			return fail(400, { inviteMessage: result.message });
+			return fail(result.kind === 'server' ? 500 : 400, { inviteMessage: result.message });
 		}
 
 		return { success: true, inviteMessage: `Invite sent to ${email}.` };

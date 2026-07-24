@@ -2,7 +2,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type InviteMemberRole = 'owner' | 'manager' | 'staff';
 
-export type InviteMemberResult = { ok: true; userId: string } | { ok: false; message: string };
+export type InviteMemberResult =
+	| { ok: true; userId: string }
+	// `kind` distinguishes a client error (bad/duplicate email — 400) from a
+	// server error (the DB insert failed after a valid invite went out —
+	// 500), so callers can pick the correct HTTP status instead of
+	// collapsing both into one code (see git history: the pre-extraction
+	// team action returned 400 and 500 respectively for these two cases).
+	| { ok: false; kind: 'client' | 'server'; message: string };
 
 // Invites a user via Supabase's native inviteUserByEmail (ADR-0002:
 // service-role, Supabase-issued token — not a hand-rolled email/token
@@ -44,7 +51,7 @@ export async function inviteOrganizationMember(
 			inviteError?.code === 'email_exists'
 				? 'That email already has an account.'
 				: 'Could not send invite. Please try again.';
-		return { ok: false, message };
+		return { ok: false, kind: 'client', message };
 	}
 
 	const { error: memberError } = await admin.from('organization_members').insert({
@@ -59,7 +66,7 @@ export async function inviteOrganizationMember(
 		// "invalid-link" with no way to retry (a new invite would just find
 		// this same, now-orphaned auth user). Undo the invite so a retry is clean.
 		await admin.auth.admin.deleteUser(invited.user.id);
-		return { ok: false, message: 'Could not create the invite. Please try again.' };
+		return { ok: false, kind: 'server', message: 'Could not create the invite. Please try again.' };
 	}
 
 	return { ok: true, userId: invited.user.id };

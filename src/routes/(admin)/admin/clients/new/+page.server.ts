@@ -51,7 +51,7 @@ export const actions: Actions = {
 			if (rollbackError) {
 				console.error('admin: failed to roll back orphaned organization', org.id, rollbackError);
 			}
-			return fail(400, { message: result.message });
+			return fail(result.kind === 'server' ? 500 : 400, { message: result.message });
 		}
 
 		// TODO: module assignment / featured-module curation is a separate,
