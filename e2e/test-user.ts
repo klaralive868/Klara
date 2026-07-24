@@ -49,3 +49,8 @@ export const IMAGES_OWNER_PASSWORD = 'password123';
 // catalog spec-file-scoped users above.
 export const STOCK_OWNER_EMAIL = 'e2e-stock-owner@example.com';
 export const STOCK_OWNER_PASSWORD = 'password123';
+
+// catalog-list-table.spec.ts's own dedicated user, same reasoning as the
+// other catalog spec-file-scoped users above.
+export const LIST_TABLE_OWNER_EMAIL = 'e2e-list-table-owner@example.com';
+export const LIST_TABLE_OWNER_PASSWORD = 'password123';

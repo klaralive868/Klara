@@ -47,7 +47,7 @@ test('create an item end-to-end, then edit it', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save item' }).click();
 
 	await expect(page).toHaveURL('/dashboard/catalog');
-	const row = page.getByRole('listitem').filter({ hasText: itemName });
+	const row = page.getByRole('row').filter({ hasText: itemName });
 	await expect(row).toBeVisible();
 	await expect(row).toContainText('Jersey');
 	await expect(row).toContainText('$49.99');
@@ -68,7 +68,7 @@ test('create an item end-to-end, then edit it', async ({ page }) => {
 	await expect(page.getByLabel('Price (USD)')).toHaveValue('55.00');
 
 	await page.goto('/dashboard/catalog');
-	await expect(page.getByRole('listitem').filter({ hasText: editedName })).toBeVisible();
+	await expect(page.getByRole('row').filter({ hasText: editedName })).toBeVisible();
 });
 
 test('archive then unarchive an item', async ({ page }) => {
@@ -94,7 +94,7 @@ test('archive then unarchive an item', async ({ page }) => {
 
 	await page.goto('/dashboard/catalog');
 	await expect(
-		page.getByRole('listitem').filter({ hasText: itemName }).getByText('draft')
+		page.getByRole('row').filter({ hasText: itemName }).getByText('draft')
 	).toBeVisible();
 });
 
@@ -123,7 +123,7 @@ test("the item list only shows the caller's own organization's items, and a fore
 	// (mirroring supabase/tests/0005_catalog_items_rls.sql): the other org's
 	// list never shows this item, and visiting its edit URL directly 404s.
 	await secondOrgPage.goto('/dashboard/catalog');
-	await expect(secondOrgPage.getByRole('listitem').filter({ hasText: ownItemName })).toHaveCount(0);
+	await expect(secondOrgPage.getByRole('row').filter({ hasText: ownItemName })).toHaveCount(0);
 
 	await secondOrgPage.goto(ownItemHref);
 	await expect(secondOrgPage.getByText('Item not found')).toBeVisible();

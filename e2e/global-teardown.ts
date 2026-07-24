@@ -5,6 +5,7 @@ import {
 	IMAGES_OWNER_EMAIL,
 	INVITEE_EMAIL_PREFIX,
 	INVITER_EMAIL,
+	LIST_TABLE_OWNER_EMAIL,
 	MANAGER_EMAIL,
 	OPERATOR_EMAIL,
 	SECOND_ORG_EMAIL,
@@ -28,6 +29,7 @@ export default async function globalTeardown() {
 			candidate.email === CATEGORIES_OWNER_EMAIL ||
 			candidate.email === IMAGES_OWNER_EMAIL ||
 			candidate.email === STOCK_OWNER_EMAIL ||
+			candidate.email === LIST_TABLE_OWNER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX)
 	);
 	for (const user of staleUsers) {
