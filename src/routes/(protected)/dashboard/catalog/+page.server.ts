@@ -133,13 +133,23 @@ export const actions: Actions = {
 		);
 
 		const publishedCount = results.filter(({ data, error }) => !error && data).length;
-		const failedCount = publishableIds.length - publishedCount;
+		// error !== null is a genuine RPC failure (transient DB error, etc.) —
+		// distinct from a clean { error: null, data: false } response, which
+		// means the RPC ran fine but declined (the item wasn't a draft, e.g.
+		// already published). Only the latter belongs in "skipped"; an actual
+		// error must be called out separately so the user knows to retry
+		// rather than assuming those items just needed a category.
+		const erroredCount = results.filter(({ error }) => error).length;
+		const notDraftCount = publishableIds.length - publishedCount - erroredCount;
 
 		const parts = [`${publishedCount} item(s) published.`];
-		if (skippedCount + failedCount > 0) {
+		if (skippedCount + notDraftCount > 0) {
 			parts.push(
-				`${skippedCount + failedCount} skipped (already published, or needs a category first).`
+				`${skippedCount + notDraftCount} skipped (already published, or needs a category first).`
 			);
+		}
+		if (erroredCount > 0) {
+			parts.push(`${erroredCount} failed due to a server error — please try again.`);
 		}
 
 		return { bulkMessage: parts.join(' ') };
