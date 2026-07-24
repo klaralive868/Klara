@@ -8,7 +8,7 @@
 
 <SiteHeader title="Add item" />
 <div class="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-	<div class="max-w-sm">
+	<div class="max-w-4xl">
 		<CatalogItemForm categories={data.categories} message={form?.message} />
 	</div>
 </div>

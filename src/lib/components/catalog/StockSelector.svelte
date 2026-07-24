@@ -51,6 +51,29 @@
 	</label>
 {/snippet}
 
+{#snippet quantityInputStacked(size: string, label: string)}
+	<!--
+	  No wrapping <span> around the label text — the catalog-stock e2e spec
+	  locates each input via getByText(size).locator('input[type="number"]'),
+	  which only matches the innermost element containing that exact text. A
+	  <span> around the label steals that match (it has no input descendant),
+	  breaking the lookup. Keeping the text as a direct child of <label> is
+	  what makes the input locatable as its descendant.
+	-->
+	<label class="flex flex-col gap-1 text-sm">
+		{label}
+		<input
+			type="number"
+			min="0"
+			step="1"
+			value={displayValue(size)}
+			oninput={(event) => setQuantity(size, event.currentTarget.value)}
+			onblur={() => normalizeOnBlur(size)}
+			class="h-9 w-full rounded-3xl border border-input bg-transparent px-2 text-sm"
+		/>
+	</label>
+{/snippet}
+
 {#if sizingScheme === 'none'}
 	{@render quantityInput(
 		'quantity',
@@ -61,38 +84,26 @@
 	<div class="space-y-3">
 		<div>
 			<p class="mb-1.5 text-sm font-medium">Male sizes</p>
-			<div class="flex flex-wrap gap-2">
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
 				{#each GENDERED_SIZES.male as size (size)}
-					{@render quantityInput(
-						`Male ${size}`,
-						size,
-						'h-9 w-16 rounded-3xl border border-input bg-transparent px-2 text-sm'
-					)}
+					{@render quantityInputStacked(`Male ${size}`, size)}
 				{/each}
 			</div>
 		</div>
 
 		<div>
 			<p class="mb-1.5 text-sm font-medium">Female sizes</p>
-			<div class="flex flex-wrap gap-2">
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
 				{#each GENDERED_SIZES.female as size (size)}
-					{@render quantityInput(
-						`Female ${size}`,
-						size,
-						'h-9 w-16 rounded-3xl border border-input bg-transparent px-2 text-sm'
-					)}
+					{@render quantityInputStacked(`Female ${size}`, size)}
 				{/each}
 			</div>
 		</div>
 	</div>
 {:else}
-	<div class="flex flex-wrap gap-2">
+	<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
 		{#each sizesForScheme(sizingScheme) as size (size)}
-			{@render quantityInput(
-				size,
-				size,
-				'h-9 w-16 rounded-3xl border border-input bg-transparent px-2 text-sm'
-			)}
+			{@render quantityInputStacked(size, size)}
 		{/each}
 	</div>
 {/if}
