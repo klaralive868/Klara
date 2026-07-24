@@ -8,7 +8,6 @@ test('an operator sees the Admin option and reaches /admin via it', async ({ pag
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL('/dashboard');
 
-	await page.getByText('Menu').click();
 	await page.getByRole('link', { name: 'Admin' }).click();
 
 	await expect(page).toHaveURL('/admin');
@@ -24,7 +23,7 @@ test('a non-operator does not see the Admin option, and is silently redirected i
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL('/dashboard');
 
-	await expect(page.getByText('Menu')).toHaveCount(0);
+	await expect(page.getByRole('link', { name: 'Admin' })).toHaveCount(0);
 
 	await page.goto('/admin');
 	await expect(page).toHaveURL('/dashboard');

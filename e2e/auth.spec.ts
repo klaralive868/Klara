@@ -62,7 +62,8 @@ test('signing out clears the session and returns to sign-in on the next protecte
 	await signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
 	await expect(page).toHaveURL('/dashboard');
 
-	await page.getByRole('button', { name: 'Sign out' }).click();
+	await page.getByRole('button', { name: TEST_USER_EMAIL }).click();
+	await page.getByRole('menuitem', { name: 'Log out' }).click();
 	await expect(page).toHaveURL('/sign-in');
 
 	await page.goto('/dashboard');

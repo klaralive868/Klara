@@ -20,6 +20,7 @@ async function signInAsInviter(page: Page) {
 	await page.getByLabel('Password', { exact: true }).fill(INVITER_PASSWORD);
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL('/dashboard');
+	await page.goto('/dashboard/team');
 }
 
 async function sendInvite(page: Page, email: string) {
@@ -186,6 +187,7 @@ test('a manager cannot invite someone as owner', async ({ page }) => {
 	await page.getByLabel('Password', { exact: true }).fill(MANAGER_PASSWORD);
 	await page.getByRole('button', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL('/dashboard');
+	await page.goto('/dashboard/team');
 
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Role').selectOption('owner');
