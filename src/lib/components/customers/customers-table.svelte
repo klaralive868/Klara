@@ -37,7 +37,7 @@
 		columnId: string,
 		filterValue: Set<string>
 	) {
-		return !filterValue || filterValue.size === 0 || filterValue.has(row.getValue(columnId) as string);
+		return filterValue.size === 0 || filterValue.has(row.getValue(columnId) as string);
 	}
 
 	const columns: ColumnDef<Customer>[] = [

@@ -30,7 +30,8 @@ export const actions: Actions = {
 		// (Standards §8/§9: server-side validation is non-negotiable).
 		const { data: defsData, error: defsError } = await locals.supabase
 			.from('customer_field_definitions')
-			.select('id, field_key, label, field_type, options, required, display_order');
+			.select('id, field_key, label, field_type, options, required, display_order')
+			.order('display_order', { ascending: true });
 		if (defsError) {
 			console.error('customers: failed to load field definitions for validation', defsError);
 			return fail(500, { message: 'Could not create the customer. Please try again.' });
