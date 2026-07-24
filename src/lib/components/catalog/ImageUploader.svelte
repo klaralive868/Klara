@@ -6,6 +6,17 @@
 	let { images, message }: { images: readonly CatalogItemImage[]; message?: string } = $props();
 
 	const id = $props.id();
+
+	let fileInput = $state<HTMLInputElement | null>(null);
+	let files = $state<FileList | null>(null);
+
+	const selectionLabel = $derived(
+		!files || files.length === 0
+			? 'No file chosen'
+			: files.length === 1
+				? files[0].name
+				: `${files.length} files selected`
+	);
 </script>
 
 <div>
@@ -41,14 +52,24 @@
 		</div>
 	{/if}
 
-	<form
-		method="POST"
-		action="?/uploadImages"
-		enctype="multipart/form-data"
-		class="flex items-center gap-2"
-	>
+	<form method="POST" action="?/uploadImages" enctype="multipart/form-data">
 		<label for="images-{id}" class="sr-only">Choose images to upload</label>
-		<input id="images-{id}" type="file" name="images" accept="image/*" multiple class="text-sm" />
-		<Button type="submit" variant="outline">Upload</Button>
+		<input
+			bind:this={fileInput}
+			bind:files
+			id="images-{id}"
+			type="file"
+			name="images"
+			accept="image/*"
+			multiple
+			class="sr-only"
+		/>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button type="button" variant="outline" onclick={() => fileInput?.click()}>
+				Choose files
+			</Button>
+			<span class="text-sm text-muted-foreground">{selectionLabel}</span>
+			<Button type="submit">Upload</Button>
+		</div>
 	</form>
 </div>

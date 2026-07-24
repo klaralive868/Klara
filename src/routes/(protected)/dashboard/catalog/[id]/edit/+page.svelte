@@ -8,7 +8,7 @@
 
 <SiteHeader title="Edit item" />
 <div class="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-	<div class="max-w-sm">
+	<div class="max-w-4xl">
 		{#if form?.success}
 			<p class="mb-4 text-sm font-normal text-green-700" role="status">{form.message}</p>
 		{/if}

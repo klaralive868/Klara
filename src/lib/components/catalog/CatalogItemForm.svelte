@@ -27,6 +27,7 @@
 	} = $props();
 
 	const id = $props.id();
+	const formId = `item-form-${id}`;
 
 	// Each of these deliberately captures `initial` only once, to seed
 	// editable local state — not to stay in sync with the prop afterwards.
@@ -53,7 +54,14 @@
 	});
 </script>
 
-<form method="POST" class="space-y-6">
+<!--
+  Status/Save render after the Images section below (per Standards, the save
+  action shouldn't visually precede the image picker it depends on) but must
+  still submit this form's fields — HTML forms can't nest, and ImageUploader
+  below has its own upload/remove/set-primary forms. The `form={formId}`
+  attribute on those buttons ties them to this form without DOM nesting.
+-->
+<form id={formId} method="POST" class="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-2">
 	<FieldGroup>
 		<Field>
 			<FieldLabel for="name-{id}">Name</FieldLabel>
@@ -82,26 +90,36 @@
 				required
 			/>
 		</Field>
+
+		<div>
+			<p class="mb-2 text-sm font-medium">Material type</p>
+			<input type="hidden" name="materialType" value={materialType} />
+			<MaterialTypePicker bind:value={materialType} />
+		</div>
 	</FieldGroup>
 
-	<div>
-		<p class="mb-2 text-sm font-medium">Material type</p>
-		<input type="hidden" name="materialType" value={materialType} />
-		<MaterialTypePicker bind:value={materialType} />
-	</div>
+	<div class="space-y-6">
+		{#if selectedType}
+			<div>
+				<p class="mb-2 text-sm font-medium">Stock</p>
+				<input type="hidden" name="stockQuantities" value={JSON.stringify(stockQuantities)} />
+				<StockSelector sizingScheme={selectedType.sizingScheme} bind:quantities={stockQuantities} />
+			</div>
+		{/if}
 
-	{#if selectedType}
 		<div>
-			<p class="mb-2 text-sm font-medium">Stock</p>
-			<input type="hidden" name="stockQuantities" value={JSON.stringify(stockQuantities)} />
-			<StockSelector sizingScheme={selectedType.sizingScheme} bind:quantities={stockQuantities} />
+			<p class="mb-2 text-sm font-medium">Categories</p>
+			<CategoryTagger {categories} bind:selected={categoryIds} />
 		</div>
-	{/if}
-
-	<div>
-		<p class="mb-2 text-sm font-medium">Categories</p>
-		<CategoryTagger {categories} bind:selected={categoryIds} />
 	</div>
+</form>
+
+<div class="mt-6 space-y-6">
+	{#if initial && images}
+		<ImageUploader {images} />
+	{:else if !initial}
+		<p class="text-sm text-muted-foreground">Save the item first to add images.</p>
+	{/if}
 
 	{#if message}
 		<FieldError errors={[{ message }]} />
@@ -114,24 +132,26 @@
 			</p>
 			<div class="flex flex-wrap items-center gap-2">
 				{#if initial.status === 'draft'}
-					<Button type="submit" formaction="?/publish">Publish</Button>
-					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
+					<Button type="submit" form={formId} formaction="?/publish">Publish</Button>
+					<Button type="submit" form={formId} formaction="?/archive" variant="outline">
+						Archive
+					</Button>
 				{:else if initial.status === 'published'}
-					<Button type="submit" formaction="?/archive" variant="outline">Archive</Button>
+					<Button type="submit" form={formId} formaction="?/archive" variant="outline">
+						Archive
+					</Button>
 				{:else if initial.status === 'archived'}
-					<Button type="submit" formaction="?/unarchive" variant="outline">Unarchive</Button>
+					<Button type="submit" form={formId} formaction="?/unarchive" variant="outline">
+						Unarchive
+					</Button>
 				{/if}
 			</div>
 		</div>
 	{/if}
 
 	<Field>
-		<Button type="submit" formaction={initial ? '?/update' : undefined}>Save item</Button>
+		<Button type="submit" form={formId} formaction={initial ? '?/update' : undefined}>
+			Save item
+		</Button>
 	</Field>
-</form>
-
-{#if initial && images}
-	<ImageUploader {images} />
-{:else if !initial}
-	<p class="text-sm text-muted-foreground">Save the item first to add images.</p>
-{/if}
+</div>
