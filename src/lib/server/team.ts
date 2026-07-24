@@ -26,18 +26,17 @@ export async function listOrganizationMembers(
 		return [];
 	}
 
+	// One listUsers() call rather than one getUserById() per member — avoids a
+	// burst of parallel admin API calls (and the rate-limit/latency risk that
+	// comes with it) on every page load.
 	const admin = createSupabaseAdminClient();
-	const members = await Promise.all(
-		data.map(async (row) => {
-			const { data: userData } = await admin.auth.admin.getUserById(row.user_id);
-			return {
-				id: row.user_id,
-				email: userData.user?.email ?? '(unknown)',
-				role: row.role,
-				status: row.status
-			};
-		})
-	);
+	const { data: usersPage } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+	const emailById = new Map(usersPage?.users.map((u) => [u.id, u.email]) ?? []);
 
-	return members;
+	return data.map((row) => ({
+		id: row.user_id,
+		email: emailById.get(row.user_id) ?? '(unknown)',
+		role: row.role,
+		status: row.status
+	}));
 }

@@ -22,15 +22,33 @@ const ROLES_GRANTABLE_BY: Record<'owner' | 'manager', readonly InvitableRole[]> 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await locals.safeGetSession();
 	if (!user) {
-		return { members: [] };
+		return { members: [], grantableRoles: [] };
 	}
 
 	const organizationId = await getActiveOrganizationId(locals.supabase, user.id);
 	if (!organizationId) {
-		return { members: [] };
+		return { members: [], grantableRoles: [] };
 	}
 
-	return { members: await listOrganizationMembers(locals.supabase, organizationId) };
+	// Drives which roles the invite form's select offers — kept in sync with
+	// the action's own ROLES_GRANTABLE_BY check below rather than duplicated,
+	// so a staff member (who can't invite at all) sees no options and a
+	// manager never sees "owner" as a selectable, doomed-to-403 choice.
+	const { data: ownMembership } = await locals.supabase
+		.from('organization_members')
+		.select('role')
+		.eq('user_id', user.id)
+		.eq('status', 'active')
+		.single();
+
+	const ownRole = ownMembership?.role as 'owner' | 'manager' | 'staff' | undefined;
+	const grantableRoles =
+		ownRole === 'owner' || ownRole === 'manager' ? ROLES_GRANTABLE_BY[ownRole] : [];
+
+	return {
+		members: await listOrganizationMembers(locals.supabase, organizationId),
+		grantableRoles
+	};
 };
 
 export const actions: Actions = {
