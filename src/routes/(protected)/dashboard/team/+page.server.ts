@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getActiveOrganizationId } from '$lib/server/organization';
 import { listOrganizationMembers } from '$lib/server/team';
+import { inviteOrganizationMember } from '$lib/server/invite';
 import type { Actions, PageServerLoad } from './$types';
 
 const INVITABLE_ROLES = ['owner', 'manager', 'staff'] as const;
@@ -90,37 +91,14 @@ export const actions: Actions = {
 
 		const admin = createSupabaseAdminClient();
 
-		// Creates the invitee's auth.users row and emails the invite link — the
-		// membership row below is created immediately after, using the id this
-		// call returns (ADR-0002: pending-at-invite-time, service-role only).
-		const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+		const result = await inviteOrganizationMember(admin, {
+			email,
+			organizationId: inviterMembership.organization_id,
+			role,
 			redirectTo: `${url.origin}/auth/confirm`
 		});
-		if (inviteError || !invited.user) {
-			// Supabase's raw error can include internal detail (e.g. "User already
-			// registered"). The inviter is already a privileged, authenticated
-			// caller, but this still shouldn't be a blank check on what leaks —
-			// only the one known, actionable case is surfaced specifically.
-			const message =
-				inviteError?.code === 'email_exists'
-					? 'That email already has an account.'
-					: 'Could not send invite. Please try again.';
-			return fail(400, { inviteMessage: message });
-		}
-
-		const { error: memberError } = await admin.from('organization_members').insert({
-			user_id: invited.user.id,
-			organization_id: inviterMembership.organization_id,
-			role,
-			status: 'pending'
-		});
-		if (memberError) {
-			// The invite email already went out with no membership row behind it —
-			// left as-is, the invitee's claim would silently dead-end at
-			// "invalid-link" with no way to retry (a new invite would just find
-			// this same, now-orphaned auth user). Undo the invite so a retry is clean.
-			await admin.auth.admin.deleteUser(invited.user.id);
-			return fail(500, { inviteMessage: 'Could not create the invite. Please try again.' });
+		if (!result.ok) {
+			return fail(result.kind === 'server' ? 500 : 400, { inviteMessage: result.message });
 		}
 
 		return { success: true, inviteMessage: `Invite sent to ${email}.` };
