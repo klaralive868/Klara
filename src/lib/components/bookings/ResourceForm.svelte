@@ -27,7 +27,8 @@
 	let quantity = $state(untrack(() => (initial?.quantity != null ? String(initial.quantity) : '')));
 </script>
 
-<form class="space-y-6">
+<!-- TODO(#38): wire real submit once this form is backed by Supabase. -->
+<form class="space-y-6" onsubmit={(event) => event.preventDefault()}>
 	<FieldGroup>
 		<Field>
 			<FieldLabel for="name-{id}">Name</FieldLabel>

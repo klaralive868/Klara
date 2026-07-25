@@ -3,6 +3,7 @@
 	import SiteHeader from '$lib/components/site-header.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import type { ResourceStatus } from '$lib/bookings/placeholder-resources';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -39,7 +40,7 @@
 		return `${format(departureDate)} – ${format(returnDate)}`;
 	}
 
-	function statusVariant(status: 'draft' | 'published' | 'archived') {
+	function statusVariant(status: ResourceStatus) {
 		if (status === 'published') return 'default';
 		if (status === 'archived') return 'destructive';
 		return 'outline';
