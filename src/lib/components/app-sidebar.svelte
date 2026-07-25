@@ -3,6 +3,7 @@
 	import DashboardIcon from '@tabler/icons-svelte/icons/dashboard';
 	import InnerShadowTopIcon from '@tabler/icons-svelte/icons/inner-shadow-top';
 	import ListIcon from '@tabler/icons-svelte/icons/list';
+	import PackageIcon from '@tabler/icons-svelte/icons/package';
 	import PlusIcon from '@tabler/icons-svelte/icons/plus';
 	import ShieldIcon from '@tabler/icons-svelte/icons/shield';
 	import TagIcon from '@tabler/icons-svelte/icons/tag';
@@ -65,6 +66,19 @@
 		}
 	];
 
+	const resources = [
+		{
+			name: 'All resources',
+			url: resolve('/dashboard/resources'),
+			icon: PackageIcon
+		},
+		{
+			name: 'New resource',
+			url: resolve('/dashboard/resources/new'),
+			icon: PlusIcon
+		}
+	];
+
 	const navSecondary = $derived(
 		isOperator ? [{ title: 'Admin', url: resolve('/admin'), icon: ShieldIcon }] : []
 	);
@@ -89,6 +103,7 @@
 		<NavDocuments items={dashboard} label="Dashboard" />
 		<NavDocuments items={catalog} label="Catalog" />
 		<NavDocuments items={customers} label="Customers" />
+		<NavDocuments items={resources} label="Resources" />
 		{#if navSecondary.length > 0}
 			<NavSecondary items={navSecondary} class="mt-auto" />
 		{/if}
