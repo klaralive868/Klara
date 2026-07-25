@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { formatDateRange } from '$lib/format-date';
+	import { formatPriceCents } from '$lib/format-price';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	function formatPrice(cents: number) {
-		return `$${(cents / 100).toFixed(2)}`;
-	}
 </script>
 
 <svelte:head>
@@ -30,7 +27,7 @@
 				<p class="text-sm text-muted-foreground">
 					{formatDateRange(resource.departureDate, resource.returnDate)}
 				</p>
-				<p class="mt-1 font-medium">{formatPrice(resource.priceCents)}</p>
+				<p class="mt-1 font-medium">{formatPriceCents(resource.priceCents)}</p>
 			</a>
 		{:else}
 			<p class="text-sm text-muted-foreground">No packages available right now.</p>

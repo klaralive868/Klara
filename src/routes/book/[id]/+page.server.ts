@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getPlaceholderResource } from '$lib/bookings/placeholder-resources';
+import { getPlaceholderResource, toPublicResource } from '$lib/bookings/placeholder-resources';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -11,5 +11,5 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (!resource || resource.status !== 'published') {
 		error(404, 'Package not found');
 	}
-	return { resource };
+	return { resource: toPublicResource(resource) };
 };

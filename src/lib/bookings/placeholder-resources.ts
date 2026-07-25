@@ -77,3 +77,32 @@ export const PLACEHOLDER_RESOURCES: readonly PlaceholderResource[] = [
 export function getPlaceholderResource(id: string): PlaceholderResource | undefined {
 	return PLACEHOLDER_RESOURCES.find((resource) => resource.id === id);
 }
+
+// The subset of a Resource safe to send to an unauthenticated visitor.
+// `quantity` (seat capacity) and `requiresManualConfirmation` are agent-only
+// (docs/bookings-travel-packages-spec.md) — deliberately shaped out here, at
+// the load boundary, rather than trusted to just stay unrendered by the
+// template. SvelteKit ships whatever `load()` returns to the client as page
+// data regardless of what the markup actually displays, so withholding a
+// field only in the template doesn't withhold it from the response.
+export interface PublicResource {
+	id: string;
+	name: string;
+	description: string;
+	departureDate: string;
+	returnDate: string;
+	priceCents: number;
+	imageCount: number;
+}
+
+export function toPublicResource(resource: PlaceholderResource): PublicResource {
+	return {
+		id: resource.id,
+		name: resource.name,
+		description: resource.description,
+		departureDate: resource.departureDate,
+		returnDate: resource.returnDate,
+		priceCents: resource.priceCents,
+		imageCount: resource.imageCount
+	};
+}

@@ -3,15 +3,12 @@
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { formatDateRange } from '$lib/format-date';
+	import { formatPriceCents } from '$lib/format-price';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const id = $props.id();
-
-	function formatPrice(cents: number) {
-		return `$${(cents / 100).toFixed(2)}`;
-	}
 
 	let name = $state('');
 	let email = $state('');
@@ -37,12 +34,14 @@
 	<p class="mt-1 text-muted-foreground">
 		{formatDateRange(data.resource.departureDate, data.resource.returnDate)}
 	</p>
-	<p class="mt-2 text-lg font-medium">{formatPrice(data.resource.priceCents)}</p>
+	<p class="mt-2 text-lg font-medium">{formatPriceCents(data.resource.priceCents)}</p>
 	<p class="mt-4">{data.resource.description}</p>
 
 	<!-- Deliberately no seat/capacity numbers here — that's agent-only
 	     information (docs/bookings-travel-packages-spec.md); capacity is
-	     never authoritative enough to display or gate on publicly. -->
+	     never authoritative enough to display or gate on publicly. Enforced
+	     at the load boundary too (toPublicResource strips it from the data
+	     payload entirely), not just withheld by this template. -->
 
 	<h2 class="mt-10 mb-4 text-lg font-semibold">Request this package</h2>
 

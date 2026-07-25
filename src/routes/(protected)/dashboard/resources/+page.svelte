@@ -4,14 +4,11 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { formatDateRange } from '$lib/format-date';
+	import { formatPriceCents } from '$lib/format-price';
 	import type { ResourceStatus } from '$lib/bookings/placeholder-resources';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	function formatPrice(cents: number) {
-		return `$${(cents / 100).toFixed(2)}`;
-	}
 
 	function statusVariant(status: ResourceStatus) {
 		if (status === 'published') return 'default';
@@ -37,7 +34,7 @@
 						{resource.name}
 					</a>
 					<p class="text-sm text-muted-foreground">
-						{formatDateRange(resource.departureDate, resource.returnDate)} · {formatPrice(
+						{formatDateRange(resource.departureDate, resource.returnDate)} · {formatPriceCents(
 							resource.priceCents
 						)} · {resource.quantity === null ? 'No seat limit' : `${resource.quantity} seats`}
 					</p>
