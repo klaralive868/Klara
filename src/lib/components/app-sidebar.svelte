@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AddressBookIcon from '@tabler/icons-svelte/icons/address-book';
+	import CalendarEventIcon from '@tabler/icons-svelte/icons/calendar-event';
 	import DashboardIcon from '@tabler/icons-svelte/icons/dashboard';
 	import InnerShadowTopIcon from '@tabler/icons-svelte/icons/inner-shadow-top';
 	import ListIcon from '@tabler/icons-svelte/icons/list';
@@ -79,6 +80,19 @@
 		}
 	];
 
+	const bookings = [
+		{
+			name: 'All bookings',
+			url: resolve('/dashboard/bookings'),
+			icon: CalendarEventIcon
+		},
+		{
+			name: 'Log booking',
+			url: resolve('/dashboard/bookings/new'),
+			icon: PlusIcon
+		}
+	];
+
 	const navSecondary = $derived(
 		isOperator ? [{ title: 'Admin', url: resolve('/admin'), icon: ShieldIcon }] : []
 	);
@@ -104,6 +118,7 @@
 		<NavDocuments items={catalog} label="Catalog" />
 		<NavDocuments items={customers} label="Customers" />
 		<NavDocuments items={resources} label="Resources" />
+		<NavDocuments items={bookings} label="Bookings" />
 		{#if navSecondary.length > 0}
 			<NavSecondary items={navSecondary} class="mt-auto" />
 		{/if}

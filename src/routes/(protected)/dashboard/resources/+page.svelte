@@ -3,6 +3,7 @@
 	import SiteHeader from '$lib/components/site-header.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { formatDateRange } from '$lib/format-date';
 	import type { ResourceStatus } from '$lib/bookings/placeholder-resources';
 	import type { PageData } from './$types';
 
@@ -10,34 +11,6 @@
 
 	function formatPrice(cents: number) {
 		return `$${(cents / 100).toFixed(2)}`;
-	}
-
-	const MONTH_NAMES = [
-		'Jan',
-		'Feb',
-		'Mar',
-		'Apr',
-		'May',
-		'Jun',
-		'Jul',
-		'Aug',
-		'Sep',
-		'Oct',
-		'Nov',
-		'Dec'
-	];
-
-	// Deliberately not `new Date(iso).toLocaleDateString(...)` — that parses
-	// the plain "YYYY-MM-DD" as UTC midnight, then renders in the browser's
-	// local timezone, which shifts the displayed date back a day for anyone
-	// west of UTC. A departure date is a calendar date, not an instant — read
-	// the parts directly instead of going through any timezone conversion.
-	function formatDateRange(departureDate: string, returnDate: string) {
-		const format = (iso: string) => {
-			const [, month, day] = iso.split('-');
-			return `${MONTH_NAMES[Number(month) - 1]} ${Number(day)}`;
-		};
-		return `${format(departureDate)} – ${format(returnDate)}`;
 	}
 
 	function statusVariant(status: ResourceStatus) {
