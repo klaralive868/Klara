@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
+	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { PLACEHOLDER_CUSTOMERS, type PlaceholderCustomer } from '$lib/bookings/placeholder-customers';
 
@@ -18,6 +18,14 @@
 	let newName = $state('');
 	let newEmail = $state('');
 	let newPhone = $state('');
+	let createError = $state('');
+
+	// The email <Input type="email"> only gets native constraint validation
+	// for free inside a <form> on submit — this button is deliberately
+	// type="button" (it doesn't submit the outer booking form), so the
+	// browser never runs that check. Validate explicitly instead of quietly
+	// accepting whatever was typed.
+	const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 	const matches = $derived(
 		query.trim()
@@ -42,7 +50,16 @@
 	}
 
 	function createCustomer() {
-		if (!newName.trim() || !newEmail.trim()) return;
+		if (!newName.trim()) {
+			createError = 'Enter a full name.';
+			return;
+		}
+		if (!newEmail.trim() || !EMAIL_PATTERN.test(newEmail.trim())) {
+			createError = 'Enter a valid email.';
+			return;
+		}
+		createError = '';
+
 		const customer: PlaceholderCustomer = {
 			id: `new-${Date.now()}`,
 			fullName: newName.trim(),
@@ -108,6 +125,9 @@
 					<FieldLabel for="newCustomerPhone-{id}">Phone</FieldLabel>
 					<Input id="newCustomerPhone-{id}" type="tel" bind:value={newPhone} />
 				</Field>
+				{#if createError}
+					<FieldError errors={[{ message: createError }]} />
+				{/if}
 				<Button type="button" onclick={createCustomer}>Add customer</Button>
 			</FieldGroup>
 		{/if}

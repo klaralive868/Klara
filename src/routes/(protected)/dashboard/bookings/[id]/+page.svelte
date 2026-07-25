@@ -9,11 +9,22 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Seeded once from the loaded booking, then locally mutable so the
-	// confirm/cancel/complete buttons below have something to demonstrate —
-	// this is placeholder-only, nothing persists past a reload yet (#44
-	// wires the real transitions).
+	// Locally mutable so the confirm/cancel/complete buttons below have
+	// something to demonstrate — this is placeholder-only, nothing persists
+	// past a reload yet (#44 wires the real transitions).
 	let status = $state<BookingStatus>(untrack(() => data.booking.status));
+
+	// SvelteKit reuses this component instance across client-side
+	// navigation between different booking ids (only the route param
+	// changes) — without this, the locally seeded `status` from the
+	// previous booking lingers, showing the wrong badge/actions against the
+	// newly loaded booking's other fields. Resync whenever a fresh `data`
+	// arrives; this never fights a local button click, since clicks write to
+	// `status` without touching `data.booking.status`, so this effect has
+	// nothing to react to when that's all that changed.
+	$effect(() => {
+		status = data.booking.status;
+	});
 </script>
 
 <SiteHeader title="Booking" />
