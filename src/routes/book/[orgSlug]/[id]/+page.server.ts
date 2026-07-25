@@ -1,7 +1,9 @@
 import { error, fail } from '@sveltejs/kit';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getOrganizationBySlug } from '$lib/server/public-organization';
 import { getPublishedResource } from '$lib/server/public-resources';
+import type { PublicResource } from '$lib/bookings/placeholder-resources';
 import {
 	createBooking,
 	findOrCreateCustomer,
@@ -14,37 +16,47 @@ const BOOKING_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
 const RATE_LIMITED_ERROR = 'Too many requests. Please try again later.';
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
+// A draft/archived resource — or one belonging to a different organization
+// than the slug resolved to — resolves to null the same as a nonexistent
+// one; a visitor should never be able to tell the difference (Standards §5's
+// visibility-lifecycle intent). Shared by both the load and the action so
+// the org-then-resource resolution isn't duplicated between them.
+async function resolvePublishedResource(
+	admin: SupabaseClient,
+	orgSlug: string,
+	resourceId: string
+): Promise<{ organizationId: string; resource: PublicResource } | null> {
+	const organization = await getOrganizationBySlug(admin, orgSlug);
+	if (!organization) {
+		return null;
+	}
+
+	const resource = await getPublishedResource(admin, organization.id, resourceId);
+	if (!resource) {
+		return null;
+	}
+
+	return { organizationId: organization.id, resource };
+}
+
 export const load: PageServerLoad = async ({ params }) => {
 	const admin = createSupabaseAdminClient();
-	const organization = await getOrganizationBySlug(admin, params.orgSlug);
-	if (!organization) {
+	const resolved = await resolvePublishedResource(admin, params.orgSlug, params.id);
+	if (!resolved) {
 		error(404, 'Package not found');
 	}
 
-	// A draft/archived resource — or one belonging to a different
-	// organization than the slug resolved to — 404s the same as a
-	// nonexistent one; a visitor should never be able to tell the
-	// difference (Standards §5's visibility-lifecycle intent).
-	const resource = await getPublishedResource(admin, organization.id, params.id);
-	if (!resource) {
-		error(404, 'Package not found');
-	}
-
-	return { resource };
+	return { resource: resolved.resource };
 };
 
 export const actions: Actions = {
 	default: async ({ request, params, getClientAddress }) => {
 		const admin = createSupabaseAdminClient();
-		const organization = await getOrganizationBySlug(admin, params.orgSlug);
-		if (!organization) {
+		const resolved = await resolvePublishedResource(admin, params.orgSlug, params.id);
+		if (!resolved) {
 			return fail(404, { message: GENERIC_ERROR });
 		}
-
-		const resource = await getPublishedResource(admin, organization.id, params.id);
-		if (!resource) {
-			return fail(404, { message: GENERIC_ERROR });
-		}
+		const { organizationId, resource } = resolved;
 
 		const formData = await request.formData();
 		const parsed = parseBookingForm(formData);
@@ -59,7 +71,7 @@ export const actions: Actions = {
 
 		const customer = await findOrCreateCustomer(
 			admin,
-			organization.id,
+			organizationId,
 			parsed.value.name,
 			parsed.value.email,
 			parsed.value.phone

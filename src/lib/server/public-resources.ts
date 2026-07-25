@@ -10,6 +10,8 @@ interface PublicResourceRow {
 	price_cents: number;
 }
 
+const PUBLIC_RESOURCE_COLUMNS = 'id, name, description, departure_date, return_date, price_cents';
+
 // imageCount is always 0 for now — resource_images (ticket #40) doesn't
 // exist yet, so there's nothing real to count. quantity/requires_manual_
 // confirmation are deliberately never selected here: they're agent-only
@@ -33,7 +35,7 @@ export async function listPublishedResources(
 ): Promise<PublicResource[]> {
 	const { data, error } = await supabase
 		.from('resources')
-		.select('id, name, description, departure_date, return_date, price_cents')
+		.select(PUBLIC_RESOURCE_COLUMNS)
 		.eq('organization_id', organizationId)
 		.eq('status', 'published')
 		.order('departure_date', { ascending: true });
@@ -56,7 +58,7 @@ export async function getPublishedResource(
 ): Promise<PublicResource | null> {
 	const { data, error } = await supabase
 		.from('resources')
-		.select('id, name, description, departure_date, return_date, price_cents')
+		.select(PUBLIC_RESOURCE_COLUMNS)
 		.eq('organization_id', organizationId)
 		.eq('status', 'published')
 		.eq('id', id)
