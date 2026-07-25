@@ -27,10 +27,16 @@ export const actions: Actions = {
 
 		const { data: org, error: orgError } = await admin
 			.from('organizations')
-			.insert({ name: parsed.value.businessName })
+			.insert({ name: parsed.value.businessName, slug: parsed.value.slug })
 			.select('id')
 			.single();
 		if (orgError || !org) {
+			// Postgres unique_violation — surfaced as a clear, actionable message
+			// rather than a raw constraint error, since a slug collision is a
+			// routine, expected input mistake (not a server fault).
+			if (orgError?.code === '23505') {
+				return fail(400, { message: 'That URL slug is already taken. Choose another.' });
+			}
 			console.error('admin: failed to create organization', orgError);
 			return fail(500, { message: 'Could not create the client. Please try again.' });
 		}

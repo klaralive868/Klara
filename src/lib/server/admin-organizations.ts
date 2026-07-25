@@ -36,7 +36,10 @@ export async function listOrganizationsForAdmin(
 	admin: SupabaseClient
 ): Promise<AdminOrganizationRow[]> {
 	const [orgsResult, membersResult, emailById] = await Promise.all([
-		admin.from('organizations').select('id, name, created_at').order('created_at', { ascending: false }),
+		admin
+			.from('organizations')
+			.select('id, name, slug, created_at')
+			.order('created_at', { ascending: false }),
 		admin.from('organization_members').select('organization_id, user_id, role, status'),
 		listAllUserEmailsById(admin)
 	]);
@@ -77,6 +80,7 @@ export async function listOrganizationsForAdmin(
 		return {
 			id: org.id,
 			name: org.name,
+			slug: org.slug,
 			ownerEmail: owner ? (emailById.get(owner.user_id) ?? null) : null,
 			status,
 			createdAt: org.created_at,

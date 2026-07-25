@@ -31,6 +31,7 @@
 		<Table.Header class="bg-muted">
 			<Table.Row>
 				<Table.Head>Name</Table.Head>
+				<Table.Head>Slug</Table.Head>
 				<Table.Head>Owner email</Table.Head>
 				<Table.Head>Status</Table.Head>
 				<Table.Head>Created</Table.Head>
@@ -42,6 +43,7 @@
 				{#each organizations as org (org.id)}
 					<Table.Row>
 						<Table.Cell class="font-medium">{org.name}</Table.Cell>
+						<Table.Cell class="font-mono text-muted-foreground">{org.slug}</Table.Cell>
 						<Table.Cell>{org.ownerEmail ?? '—'}</Table.Cell>
 						<Table.Cell>
 							<Badge variant={statusVariant(org.status)}>{statusLabel(org.status)}</Badge>
@@ -52,7 +54,7 @@
 				{/each}
 			{:else}
 				<Table.Row>
-					<Table.Cell colspan={5} class="h-24 text-center text-muted-foreground">
+					<Table.Cell colspan={6} class="h-24 text-center text-muted-foreground">
 						No organizations yet.
 					</Table.Cell>
 				</Table.Row>
