@@ -78,6 +78,7 @@
 				step="1"
 				bind:value={quantity}
 				class="mt-2 max-w-32"
+				required
 			/>
 		{/if}
 	</Field>
