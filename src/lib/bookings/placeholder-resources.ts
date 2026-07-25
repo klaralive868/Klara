@@ -15,6 +15,12 @@ export interface PlaceholderResource {
 	requiresManualConfirmation: boolean;
 	priceCents: number;
 	status: ResourceStatus;
+	/**
+	 * How many photos this resource has — a count, not real URLs. The
+	 * public detail page (#42) renders this many placeholder image tiles;
+	 * real photo upload/storage is #39/#40's job, not this ticket's.
+	 */
+	imageCount: number;
 }
 
 export const PLACEHOLDER_RESOURCES: readonly PlaceholderResource[] = [
@@ -27,7 +33,8 @@ export const PLACEHOLDER_RESOURCES: readonly PlaceholderResource[] = [
 		quantity: 20,
 		requiresManualConfirmation: true,
 		priceCents: 189900,
-		status: 'published'
+		status: 'published',
+		imageCount: 3
 	},
 	{
 		id: '2',
@@ -38,7 +45,8 @@ export const PLACEHOLDER_RESOURCES: readonly PlaceholderResource[] = [
 		quantity: null,
 		requiresManualConfirmation: true,
 		priceCents: 189900,
-		status: 'draft'
+		status: 'draft',
+		imageCount: 2
 	},
 	{
 		id: '3',
@@ -49,10 +57,52 @@ export const PLACEHOLDER_RESOURCES: readonly PlaceholderResource[] = [
 		quantity: 12,
 		requiresManualConfirmation: true,
 		priceCents: 349900,
-		status: 'archived'
+		status: 'archived',
+		imageCount: 4
+	},
+	{
+		id: '4',
+		name: 'Costa Rica Adventure — Nov 5 Departure',
+		description: 'Rainforest zip-lining, volcano hikes, and beach time on the Pacific coast.',
+		departureDate: '2026-11-05',
+		returnDate: '2026-11-12',
+		quantity: null,
+		requiresManualConfirmation: true,
+		priceCents: 219900,
+		status: 'published',
+		imageCount: 5
 	}
 ];
 
 export function getPlaceholderResource(id: string): PlaceholderResource | undefined {
 	return PLACEHOLDER_RESOURCES.find((resource) => resource.id === id);
+}
+
+// The subset of a Resource safe to send to an unauthenticated visitor.
+// `quantity` (seat capacity) and `requiresManualConfirmation` are agent-only
+// (docs/bookings-travel-packages-spec.md) — deliberately shaped out here, at
+// the load boundary, rather than trusted to just stay unrendered by the
+// template. SvelteKit ships whatever `load()` returns to the client as page
+// data regardless of what the markup actually displays, so withholding a
+// field only in the template doesn't withhold it from the response.
+export interface PublicResource {
+	id: string;
+	name: string;
+	description: string;
+	departureDate: string;
+	returnDate: string;
+	priceCents: number;
+	imageCount: number;
+}
+
+export function toPublicResource(resource: PlaceholderResource): PublicResource {
+	return {
+		id: resource.id,
+		name: resource.name,
+		description: resource.description,
+		departureDate: resource.departureDate,
+		returnDate: resource.returnDate,
+		priceCents: resource.priceCents,
+		imageCount: resource.imageCount
+	};
 }
