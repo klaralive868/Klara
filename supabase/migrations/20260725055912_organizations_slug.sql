@@ -22,14 +22,18 @@ with_fallback as (
 		coalesce(base_slug, 'org-' || substring(id::text, 1, 8)) as base_slug
 	from slugified
 ),
+numbered as (
+	select
+		id,
+		base_slug,
+		row_number() over (partition by base_slug order by id) as dup_index
+	from with_fallback
+),
 deduped as (
 	select
 		id,
-		case
-			when row_number() over (partition by base_slug order by id) = 1 then base_slug
-			else base_slug || '-' || row_number() over (partition by base_slug order by id)
-		end as final_slug
-	from with_fallback
+		case when dup_index = 1 then base_slug else base_slug || '-' || dup_index end as final_slug
+	from numbered
 )
 update public.organizations o
 set slug = d.final_slug

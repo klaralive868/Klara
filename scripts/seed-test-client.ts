@@ -38,7 +38,8 @@ const supabase = createClient(url, serviceRoleKey, {
 });
 
 // Duplicated from src/lib/slug.ts rather than imported — this script runs
-// standalone via plain tsx, outside SvelteKit's $lib alias resolution.
+// standalone via plain tsx, outside SvelteKit's $lib alias resolution. Keep
+// this in sync with that file if its rules ever change.
 function slugify(input: string): string {
 	return input
 		.toLowerCase()
