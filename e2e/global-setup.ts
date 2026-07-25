@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
 	createAdminClient,
+	E2E_BOOKING_DRAFT_RESOURCE_NAME,
+	E2E_BOOKING_ORG_NAME,
+	E2E_BOOKING_ORG_SLUG,
+	E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
 	E2E_SECOND_ORG_NAME,
 	E2E_SECOND_ORG_SLUG,
 	E2E_TEST_ORG_NAME,
@@ -221,4 +225,38 @@ export default async function globalSetup() {
 		SECOND_ORG_PASSWORD,
 		'owner'
 	);
+
+	// public-booking.spec.ts has no dashboard session to create resources
+	// through the UI (it's exercising the unauthenticated public flow), so
+	// its published/draft resources are seeded directly here instead.
+	const { data: bookingOrganization, error: bookingOrgError } = await admin
+		.from('organizations')
+		.insert({ name: E2E_BOOKING_ORG_NAME, slug: E2E_BOOKING_ORG_SLUG })
+		.select()
+		.single();
+	if (bookingOrgError || !bookingOrganization) {
+		throw new Error(`Failed to create e2e public booking organization: ${bookingOrgError?.message}`);
+	}
+
+	const { error: bookingResourcesError } = await admin.from('resources').insert([
+		{
+			organization_id: bookingOrganization.id,
+			name: E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
+			departure_date: '2026-08-12',
+			return_date: '2026-08-19',
+			price_cents: 199900,
+			status: 'published'
+		},
+		{
+			organization_id: bookingOrganization.id,
+			name: E2E_BOOKING_DRAFT_RESOURCE_NAME,
+			departure_date: '2026-09-01',
+			return_date: '2026-09-08',
+			price_cents: 100000,
+			status: 'draft'
+		}
+	]);
+	if (bookingResourcesError) {
+		throw new Error(`Failed to seed e2e public booking resources: ${bookingResourcesError.message}`);
+	}
 }

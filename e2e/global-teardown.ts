@@ -1,4 +1,9 @@
-import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './admin-client';
+import {
+	createAdminClient,
+	E2E_BOOKING_ORG_NAME,
+	E2E_SECOND_ORG_NAME,
+	E2E_TEST_ORG_NAME
+} from './admin-client';
 import {
 	ADMIN_PROVISIONED_ORG_NAME_PREFIX,
 	ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX,
@@ -48,5 +53,6 @@ export default async function globalTeardown() {
 	// orphaned rows left behind by a run that crashed before this ran.
 	await admin.from('organizations').delete().eq('name', E2E_TEST_ORG_NAME);
 	await admin.from('organizations').delete().eq('name', E2E_SECOND_ORG_NAME);
+	await admin.from('organizations').delete().eq('name', E2E_BOOKING_ORG_NAME);
 	await admin.from('organizations').delete().like('name', `${ADMIN_PROVISIONED_ORG_NAME_PREFIX}%`);
 }

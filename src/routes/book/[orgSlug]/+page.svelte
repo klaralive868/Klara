@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { formatDateRange } from '$lib/format-date';
 	import { formatPriceCents } from '$lib/format-price';
@@ -17,7 +18,7 @@
 	<div class="grid gap-6 sm:grid-cols-2">
 		{#each data.resources as resource (resource.id)}
 			<a
-				href={resolve(`/book/${resource.id}`)}
+				href={resolve(`/book/${page.params.orgSlug}/${resource.id}`)}
 				class="block rounded-lg border border-border p-4 transition-colors hover:border-foreground/30"
 			>
 				<div class="mb-3 flex h-32 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
