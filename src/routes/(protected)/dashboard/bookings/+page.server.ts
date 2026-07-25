@@ -1,12 +1,10 @@
-import { bookingFromRow, type BookingRow } from '$lib/bookings/types';
+import { BOOKING_SELECT, bookingFromRow, type BookingRow } from '$lib/bookings/types';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { data, error } = await locals.supabase
 		.from('bookings')
-		.select(
-			'id, resource_id, customer_id, traveler_count, notes, status, start_at, end_at, resources(name), customers(full_name, email)'
-		)
+		.select(BOOKING_SELECT)
 		.order('created_at', { ascending: false });
 
 	if (error) {

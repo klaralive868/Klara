@@ -55,6 +55,12 @@ export interface Booking {
 	returnDate: string;
 }
 
+// The one select string every booking query uses — a booking is never
+// fetched without the resource/customer join, so there's no "bare" variant
+// for a caller to accidentally use instead.
+export const BOOKING_SELECT =
+	'id, resource_id, customer_id, traveler_count, notes, status, start_at, end_at, resources(name), customers(full_name, email)';
+
 // Raw shape of a row as returned by Supabase, joined with the resource's
 // name/dates and the customer's name/email via nested selects — a booking
 // is never displayed without knowing what it's for and who it's for, so the

@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { customerFromRow, type CustomerRow } from '$lib/customers/types';
+import { CUSTOMER_EMAIL_PATTERN, customerFromRow, type CustomerRow } from '$lib/customers/types';
 import type { RequestHandler } from './$types';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // A minimal customer-creation endpoint for CustomerPicker's inline "+ Create
 // new customer" flow (the manual booking form) — deliberately just the core
@@ -26,7 +24,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!fullName) {
 		return json({ error: 'Enter a full name.' }, { status: 400 });
 	}
-	if (!EMAIL_PATTERN.test(email)) {
+	if (!CUSTOMER_EMAIL_PATTERN.test(email)) {
 		return json({ error: 'Enter a valid email.' }, { status: 400 });
 	}
 

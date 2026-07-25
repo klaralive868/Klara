@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import type { Customer } from '$lib/customers/types';
+	import { CUSTOMER_EMAIL_PATTERN, type Customer } from '$lib/customers/types';
 
 	let {
 		customers,
@@ -23,8 +23,6 @@
 	let newPhone = $state('');
 	let createError = $state('');
 	let creating = $state(false);
-
-	const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 	const allCustomers = $derived([...customers, ...createdCustomers]);
 
@@ -55,7 +53,7 @@
 			createError = 'Enter a full name.';
 			return;
 		}
-		if (!newEmail.trim() || !EMAIL_PATTERN.test(newEmail.trim())) {
+		if (!newEmail.trim() || !CUSTOMER_EMAIL_PATTERN.test(newEmail.trim())) {
 			createError = 'Enter a valid email.';
 			return;
 		}
