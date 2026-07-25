@@ -15,6 +15,27 @@ export type ParseResourceFormResult =
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+// PostgreSQL's `integer` columns (price_cents, quantity) are 32-bit signed —
+// values beyond this would otherwise reach the DB and fail as a generic
+// server error instead of a field validation message.
+const PG_INTEGER_MAX = 2147483647;
+
+// The regex only checks shape ("digits-digits-digits") — it accepts
+// calendar-invalid dates like 2026-02-30, which `new Date(...)` silently
+// rolls over into a different date rather than rejecting (2026-02-30 becomes
+// 2026-03-02). Re-deriving the parts from the parsed Date and comparing them
+// back against the input catches that rollover.
+function isValidIsoDate(raw: string): boolean {
+	if (!ISO_DATE_PATTERN.test(raw)) {
+		return false;
+	}
+	const [year, month, day] = raw.split('-').map(Number);
+	const date = new Date(Date.UTC(year, month - 1, day));
+	return (
+		date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+	);
+}
+
 export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 	const name = String(formData.get('name') ?? '').trim();
 	const description = String(formData.get('description') ?? '').trim();
@@ -30,10 +51,10 @@ export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 		return { ok: false, message: 'Enter a name for the resource.' };
 	}
 
-	if (!ISO_DATE_PATTERN.test(departureDate)) {
+	if (!isValidIsoDate(departureDate)) {
 		return { ok: false, message: 'Enter a valid departure date.' };
 	}
-	if (!ISO_DATE_PATTERN.test(returnDate)) {
+	if (!isValidIsoDate(returnDate)) {
 		return { ok: false, message: 'Enter a valid return date.' };
 	}
 	// Plain ISO ("YYYY-MM-DD") strings compare correctly lexicographically —
@@ -44,7 +65,7 @@ export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 	}
 
 	const priceCents = parseDollarsToCents(priceRaw);
-	if (priceCents === null) {
+	if (priceCents === null || priceCents > PG_INTEGER_MAX) {
 		return { ok: false, message: 'Enter a valid price.' };
 	}
 
@@ -60,6 +81,9 @@ export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 		quantity = Number(quantityRaw);
 		if (quantity <= 0) {
 			return { ok: false, message: 'Seat limit must be greater than zero.' };
+		}
+		if (quantity > PG_INTEGER_MAX) {
+			return { ok: false, message: 'Seat limit is too large.' };
 		}
 	}
 
