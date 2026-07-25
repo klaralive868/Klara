@@ -37,6 +37,16 @@ const supabase = createClient(url, serviceRoleKey, {
 	auth: { autoRefreshToken: false, persistSession: false }
 });
 
+// Duplicated from src/lib/slug.ts rather than imported — this script runs
+// standalone via plain tsx, outside SvelteKit's $lib alias resolution. Keep
+// this in sync with that file if its rules ever change.
+function slugify(input: string): string {
+	return input
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+}
+
 async function main() {
 	// 1. Idempotency check — safe to rerun.
 	const { data: existing, error: lookupError } = await supabase
@@ -55,7 +65,7 @@ async function main() {
 	// 2. Create the organization.
 	const { data: organization, error: orgError } = await supabase
 		.from('organizations')
-		.insert({ name: clientName })
+		.insert({ name: clientName, slug: slugify(clientName) })
 		.select('id')
 		.single();
 	if (orgError) {

@@ -9,6 +9,7 @@ export type AdminOrganizationStatus = 'pending' | 'active' | 'no-owner';
 export interface AdminOrganizationRow {
 	id: string;
 	name: string;
+	slug: string;
 	ownerEmail: string | null;
 	status: AdminOrganizationStatus;
 	createdAt: string;

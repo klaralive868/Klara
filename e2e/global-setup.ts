@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createAdminClient, E2E_SECOND_ORG_NAME, E2E_TEST_ORG_NAME } from './admin-client';
+import {
+	createAdminClient,
+	E2E_SECOND_ORG_NAME,
+	E2E_SECOND_ORG_SLUG,
+	E2E_TEST_ORG_NAME,
+	E2E_TEST_ORG_SLUG
+} from './admin-client';
 import {
 	ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
 	ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
@@ -87,7 +93,7 @@ export default async function globalSetup() {
 
 	const { data: organization, error: orgError } = await admin
 		.from('organizations')
-		.insert({ name: E2E_TEST_ORG_NAME })
+		.insert({ name: E2E_TEST_ORG_NAME, slug: E2E_TEST_ORG_SLUG })
 		.select()
 		.single();
 	if (orgError || !organization) {
@@ -186,7 +192,7 @@ export default async function globalSetup() {
 
 	const { data: secondOrganization, error: secondOrgError } = await admin
 		.from('organizations')
-		.insert({ name: E2E_SECOND_ORG_NAME })
+		.insert({ name: E2E_SECOND_ORG_NAME, slug: E2E_SECOND_ORG_SLUG })
 		.select()
 		.single();
 	if (secondOrgError || !secondOrganization) {

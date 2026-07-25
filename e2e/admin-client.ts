@@ -16,3 +16,8 @@ export function createAdminClient() {
 
 export const E2E_TEST_ORG_NAME = 'E2E Test Org';
 export const E2E_SECOND_ORG_NAME = 'E2E Second Org';
+
+// organizations.slug is not null unique — these seeded orgs need one too,
+// same as any org created through the real admin-provisioning flow.
+export const E2E_TEST_ORG_SLUG = 'e2e-test-org';
+export const E2E_SECOND_ORG_SLUG = 'e2e-second-org';

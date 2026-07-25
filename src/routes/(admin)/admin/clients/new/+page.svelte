@@ -1,12 +1,26 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
+	import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import { slugify } from '$lib/slug';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 
 	const id = $props.id();
+
+	let businessName = $state('');
+	let slug = $state('');
+	// Auto-derives the slug from the business name until the operator edits
+	// the slug field themselves — once touched, their input always wins,
+	// even if they then go back and change the business name again.
+	let slugManuallyEdited = $state(false);
+
+	$effect(() => {
+		if (!slugManuallyEdited) {
+			slug = slugify(businessName);
+		}
+	});
 </script>
 
 <main class="mx-auto mt-16 max-w-lg px-4">
@@ -16,7 +30,19 @@
 		<FieldGroup>
 			<Field>
 				<FieldLabel for="businessName-{id}">Business name</FieldLabel>
-				<Input id="businessName-{id}" name="businessName" required />
+				<Input id="businessName-{id}" name="businessName" bind:value={businessName} required />
+			</Field>
+
+			<Field>
+				<FieldLabel for="slug-{id}">URL slug</FieldLabel>
+				<Input
+					id="slug-{id}"
+					name="slug"
+					bind:value={slug}
+					oninput={() => (slugManuallyEdited = true)}
+					required
+				/>
+				<FieldDescription>Used in the public URL for this client's pages.</FieldDescription>
 			</Field>
 
 			<Field>

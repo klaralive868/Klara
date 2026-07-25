@@ -1,7 +1,10 @@
+import { isValidSlug } from '$lib/slug';
+
 export interface ParsedCreateClientForm {
 	businessName: string;
 	ownerFullName: string;
 	ownerEmail: string;
+	slug: string;
 }
 
 export type ParseCreateClientFormResult =
@@ -17,6 +20,7 @@ export function parseCreateClientForm(formData: FormData): ParseCreateClientForm
 	const businessName = String(formData.get('businessName') ?? '').trim();
 	const ownerFullName = String(formData.get('ownerFullName') ?? '').trim();
 	const ownerEmail = String(formData.get('ownerEmail') ?? '').trim();
+	const slug = String(formData.get('slug') ?? '').trim();
 
 	if (!businessName) {
 		return { ok: false, message: 'Enter a business name.' };
@@ -27,6 +31,15 @@ export function parseCreateClientForm(formData: FormData): ParseCreateClientForm
 	if (!ownerEmail || !EMAIL_PATTERN.test(ownerEmail)) {
 		return { ok: false, message: "Enter a valid owner email." };
 	}
+	if (!slug) {
+		return { ok: false, message: 'Enter a URL slug.' };
+	}
+	if (!isValidSlug(slug)) {
+		return {
+			ok: false,
+			message: 'URL slug can only contain lowercase letters, numbers, and single hyphens between them.'
+		};
+	}
 
-	return { ok: true, value: { businessName, ownerFullName, ownerEmail } };
+	return { ok: true, value: { businessName, ownerFullName, ownerEmail, slug } };
 }
