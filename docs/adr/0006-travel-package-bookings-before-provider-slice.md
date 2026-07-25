@@ -1,0 +1,3 @@
+# Travel-package bookings built before the provider-based Bookings slice
+
+Architecture Brief §7b specifies provider-based (vet/salon-style) as the first Bookings tracer-bullet slice, generalizing to inventory-based afterward. We're building a third shape — travel-agency package requests, for real client WorldView Travel Service — first instead, per Standards §10 ("build against a real client's need, not speculatively"). This is a deliberate deviation from §7b's documented sequencing, not silent drift: WorldView's need is real and immediate, while the vet/salon-style client this sequencing was written for is not yet in the pipeline with the same urgency. Provider-based remains the paradigm to build next once a real client needs it.

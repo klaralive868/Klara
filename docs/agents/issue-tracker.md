@@ -1,37 +1,28 @@
-# Issue tracker: Linear
+# Issue tracker: GitHub Issues
 
-Issues and PRDs for this repo live in **Linear**.
+Issues and specs for this repo live in **GitHub Issues** (`klaralive868/Klara`), via the `gh` CLI — already authenticated in this environment. (An earlier version of this doc claimed Linear; that was never actually true in practice — every real ticket in this repo, from #1 onward, has lived in GitHub Issues. Corrected here after the mismatch surfaced mid-`/to-tickets` session.)
 
-No Linear MCP server or CLI is connected yet. Until one is connected, skills should **describe issues in prose** (title, body, labels) and hand them to the user to create/manage in Linear manually, rather than assuming an automated create/read/comment/close cycle.
+## Conventions
 
-## Connecting Linear
+- **Create a spec/parent issue**: `gh issue create --repo klaralive868/Klara --title "..." --body-file <path> --label "ready-for-agent"`. A parent issue holds the full spec content (Problem Statement, Solution, User Stories, Implementation Decisions, Testing Decisions, Out of Scope, Further Notes) inline in its body — not just a link to a doc file.
+- **Create a child ticket**: same `gh issue create` form. Reference the parent via `## Parent\n\n#<N>` in the body, and sibling blockers via `## Blocked by\n\n#<N> (title)` or `None — can start immediately`. There is no native GitHub sub-issue relationship in use here — the `## Parent` / `## Blocked by` text is the whole mechanism, so publish in dependency order (blockers before the tickets that reference them) to have real numbers to reference.
+- **Read an issue**: `gh issue view <number> --repo klaralive868/Klara`.
+- **List issues**: `gh issue list --repo klaralive868/Klara [--state all] [--label ...]`.
+- **Comment on an issue**: `gh issue comment <number> --repo klaralive868/Klara --body "..."`.
+- **Apply / remove labels**: `gh issue edit <number> --repo klaralive868/Klara --add-label "..."` / `--remove-label "..."`.
+- **Close**: `gh issue close <number> --repo klaralive868/Klara`.
 
-To let skills operate on Linear directly, connect the official remote MCP server once (interactive, run by the user — not by an agent):
+## Triage labels
 
-```
-claude mcp add --transport sse linear https://mcp.linear.app/sse
-```
-
-This opens a browser OAuth flow against the Linear workspace. Once connected, Linear's MCP tools (create issue, search, comment, etc.) become available in future sessions, and this file should be updated to describe the concrete tool calls to use for each operation below.
-
-## Conventions (once connected)
-
-- **Create an issue**: use the Linear MCP "create issue" tool with team/project as configured in Linear.
-- **Read an issue**: use the Linear MCP "get issue" / "search issues" tools.
-- **List issues**: use the Linear MCP "list issues" tool, filtered by state/label as needed.
-- **Comment on an issue**: use the Linear MCP "create comment" tool.
-- **Apply / remove labels**: use the Linear MCP "update issue" tool's labels field.
-- **Close**: update issue state to the workspace's "Done"/"Canceled" state.
+See `docs/agents/triage-labels.md` — the label strings there (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) already exist on this repo (`gh label list` to confirm before assuming a new one needs creating).
 
 ## When a skill says "publish to the issue tracker"
 
-Without MCP connected: present the issue title + body + labels to the user as a block they can paste into Linear.
-With MCP connected: create the issue directly via the Linear MCP tools.
+Create the issue(s) directly via `gh issue create`, per the conventions above.
 
 ## When a skill says "fetch the relevant ticket"
 
-Without MCP connected: ask the user to paste the ticket's title, description, and comments.
-With MCP connected: fetch it via the Linear MCP "get issue" tool.
+Fetch it directly via `gh issue view`.
 
 ## Pull requests as a request surface
 

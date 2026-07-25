@@ -104,7 +104,8 @@ Two distinct verification layers, stacked, not overlapping:
 
 - **Build against a real client's need**, not speculatively — the prospect list is the forcing function.
 - **A second vertical's configuration (e.g. a new Material Type registry) is added when a real client needs it**, using the seam already designed for it (§4) — not built out preemptively.
-- **Automation engine, self-serve module activation, and public storefront browsing are explicitly deferred** — don't let them creep into an earlier module's scope.
+- **Automation engine and self-serve module activation are explicitly deferred** — don't let them creep into an earlier module's scope.
+- **A module connects to the business's live website as part of being built, not as separately-deferred scope** — an admin-only module a client can't actually put in front of their own customers isn't finished. Whether a given module needs a public-facing surface (and how much) is still governed by the first bullet above (build against the real client's actual need) — it's just no longer treated as a categorically later phase.
 - **Subscription billing (Polar) and human-service billing (site builds, domains) stay strictly separate.**
 
 ---
