@@ -32,7 +32,19 @@ numbered as (
 deduped as (
 	select
 		id,
-		case when dup_index = 1 then base_slug else base_slug || '-' || dup_index end as final_slug
+		-- A sequential suffix ("-2", "-3", ...) isn't safe here: it can
+		-- collide with a *different* org's name that naturally slugifies to
+		-- that exact string (two "Foo" orgs producing "foo"/"foo-2" while a
+		-- separate "Foo 2" org also produces "foo-2" — a real, plausible
+		-- collision across base_slug partitions, not just a hypothetical).
+		-- The row's own id can't collide with anything a human would type as
+		-- a business name, so use that instead for every non-first
+		-- occurrence — the trailing unique constraint is still the final,
+		-- loud safety net if that assumption is ever somehow wrong.
+		case
+			when dup_index = 1 then base_slug
+			else base_slug || '-' || substring(id::text, 1, 8)
+		end as final_slug
 	from numbered
 )
 update public.organizations o
