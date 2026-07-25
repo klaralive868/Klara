@@ -73,19 +73,12 @@ export interface MatchedCustomer {
 	id: string;
 }
 
-// Matches by (organization_id, email) case-insensitively, reusing an
-// existing customer without overwriting their stored name/phone — a repeat
-// visitor's second booking shouldn't silently clobber whatever the business
-// already has on file for them. Creates one with source: 'booking' only
-// when no match exists.
-export async function findOrCreateCustomer(
+async function findCustomerByEmail(
 	supabase: SupabaseClient,
 	organizationId: string,
-	fullName: string,
-	email: string,
-	phone: string | null
+	email: string
 ): Promise<MatchedCustomer | null> {
-	const { data: existing, error: findError } = await supabase
+	const { data, error } = await supabase
 		.from('customers')
 		.select('id')
 		.eq('organization_id', organizationId)
@@ -93,9 +86,32 @@ export async function findOrCreateCustomer(
 		.limit(1)
 		.maybeSingle();
 
-	if (findError) {
-		return null;
-	}
+	return error ? null : data;
+}
+
+const UNIQUE_VIOLATION = '23505';
+
+// Matches by (organization_id, email) case-insensitively, reusing an
+// existing customer without overwriting their stored name/phone — a repeat
+// visitor's second booking shouldn't silently clobber whatever the business
+// already has on file for them. Creates one with source: 'booking' only
+// when no match exists.
+//
+// The lookup-then-insert below still has a race window between two
+// concurrent first-time requests for the same email — closed at the DB
+// layer by customers_organization_id_email_lower_key (a case-insensitive
+// unique index), not here. When both requests reach the insert, one wins
+// and the other gets a 23505 unique-violation instead of a duplicate row;
+// re-selecting on that error picks up the winner's row rather than
+// treating the loser as a failure.
+export async function findOrCreateCustomer(
+	supabase: SupabaseClient,
+	organizationId: string,
+	fullName: string,
+	email: string,
+	phone: string | null
+): Promise<MatchedCustomer | null> {
+	const existing = await findCustomerByEmail(supabase, organizationId, email);
 	if (existing) {
 		return existing;
 	}
@@ -112,11 +128,15 @@ export async function findOrCreateCustomer(
 		.select('id')
 		.single();
 
-	if (createError || !created) {
-		return null;
+	if (!createError && created) {
+		return created;
 	}
 
-	return created;
+	if (createError?.code === UNIQUE_VIOLATION) {
+		return findCustomerByEmail(supabase, organizationId, email);
+	}
+
+	return null;
 }
 
 export interface CreateBookingParams {

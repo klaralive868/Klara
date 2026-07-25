@@ -129,3 +129,27 @@ test('rate limiting kicks in after repeated submissions', async ({ page }) => {
 	await page.getByRole('button', { name: 'Request booking' }).click();
 	await expect(page.getByText('Too many requests. Please try again later.')).toBeVisible();
 });
+
+test('a casing variant of an already-throttled email is still rate-limited', async ({ page }) => {
+	const publishedId = await resourceIdByName(E2E_BOOKING_PUBLISHED_RESOURCE_NAME);
+	const email = uniqueEmail('rate-limit-casing');
+
+	for (let i = 0; i < 5; i++) {
+		await page.goto(`/book/${E2E_BOOKING_ORG_SLUG}/${publishedId}`);
+		await page.getByLabel('Full name').fill('Rate Limited Visitor');
+		await page.getByLabel('Email').fill(email);
+		await page.getByLabel('Traveler count').fill('1');
+		await page.getByRole('button', { name: 'Request booking' }).click();
+		await expect(page.getByText(/Thanks!/)).toBeVisible();
+	}
+
+	// Same address, different casing — throttling is keyed case-insensitively
+	// (matching customer lookup), so this shares the bucket just exhausted
+	// above rather than getting its own fresh allowance.
+	await page.goto(`/book/${E2E_BOOKING_ORG_SLUG}/${publishedId}`);
+	await page.getByLabel('Full name').fill('Rate Limited Visitor');
+	await page.getByLabel('Email').fill(email.toUpperCase());
+	await page.getByLabel('Traveler count').fill('1');
+	await page.getByRole('button', { name: 'Request booking' }).click();
+	await expect(page.getByText('Too many requests. Please try again later.')).toBeVisible();
+});

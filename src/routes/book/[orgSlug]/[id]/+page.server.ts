@@ -64,7 +64,11 @@ export const actions: Actions = {
 			return fail(400, { message: parsed.message });
 		}
 
-		const key = rateLimitKey('booking', getClientAddress(), parsed.value.email);
+		// Lowercased so casing variants of the same address share one bucket —
+		// customer matching is already case-insensitive (findOrCreateCustomer),
+		// so a verbatim-cased key would otherwise grant a fresh 5-request
+		// allowance per casing variant of one real email.
+		const key = rateLimitKey('booking', getClientAddress(), parsed.value.email.toLowerCase());
 		if (!checkRateLimit(key, BOOKING_RATE_LIMIT)) {
 			return fail(429, { message: RATE_LIMITED_ERROR });
 		}
