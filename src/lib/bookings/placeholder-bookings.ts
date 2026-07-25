@@ -73,3 +73,10 @@ export const PLACEHOLDER_BOOKINGS: readonly PlaceholderBooking[] = [
 export function getPlaceholderBooking(id: string): PlaceholderBooking | undefined {
 	return PLACEHOLDER_BOOKINGS.find((booking) => booking.id === id);
 }
+
+export function bookingStatusVariant(status: BookingStatus) {
+	if (status === 'confirmed') return 'default';
+	if (status === 'completed') return 'secondary';
+	if (status === 'cancelled') return 'destructive';
+	return 'outline';
+}

@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { formatDateRange } from '$lib/format-date';
-	import type { BookingStatus } from '$lib/bookings/placeholder-bookings';
+	import { bookingStatusVariant, type BookingStatus } from '$lib/bookings/placeholder-bookings';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -14,13 +14,6 @@
 	// this is placeholder-only, nothing persists past a reload yet (#44
 	// wires the real transitions).
 	let status = $state<BookingStatus>(untrack(() => data.booking.status));
-
-	function statusVariant(value: BookingStatus) {
-		if (value === 'confirmed') return 'default';
-		if (value === 'completed') return 'secondary';
-		if (value === 'cancelled') return 'destructive';
-		return 'outline';
-	}
 </script>
 
 <SiteHeader title="Booking" />
@@ -28,7 +21,7 @@
 	<div class="max-w-lg space-y-6">
 		<div class="flex items-center justify-between">
 			<h2 class="text-lg font-semibold">{data.booking.customerName}</h2>
-			<Badge variant={statusVariant(status)}>{status}</Badge>
+			<Badge variant={bookingStatusVariant(status)}>{status}</Badge>
 		</div>
 
 		<dl class="space-y-3 text-sm">

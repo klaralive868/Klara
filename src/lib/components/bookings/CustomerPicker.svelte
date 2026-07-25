@@ -4,12 +4,6 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { PLACEHOLDER_CUSTOMERS, type PlaceholderCustomer } from '$lib/bookings/placeholder-customers';
 
-	// Type the prop via the destructuring annotation, not an inline generic
-	// on $bindable() itself (`$bindable<T>(null)`) — that form silently
-	// breaks two-way propagation to the parent in this Svelte version (the
-	// child's own `{#if selected}` branch still reacts locally, which looks
-	// like it's working, but the parent's bound variable never updates).
-	// Matches the working pattern already used by CategoryTagger.svelte.
 	let { selected = $bindable(null) }: { selected: PlaceholderCustomer | null } = $props();
 
 	const id = $props.id();

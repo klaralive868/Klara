@@ -4,17 +4,10 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { formatDateRange } from '$lib/format-date';
-	import type { BookingStatus } from '$lib/bookings/placeholder-bookings';
+	import { bookingStatusVariant } from '$lib/bookings/placeholder-bookings';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	function statusVariant(status: BookingStatus) {
-		if (status === 'confirmed') return 'default';
-		if (status === 'completed') return 'secondary';
-		if (status === 'cancelled') return 'destructive';
-		return 'outline';
-	}
 </script>
 
 <SiteHeader title="Bookings" />
@@ -39,7 +32,7 @@
 						{booking.travelerCount === 1 ? 'traveler' : 'travelers'}
 					</p>
 				</div>
-				<Badge variant={statusVariant(booking.status)}>{booking.status}</Badge>
+				<Badge variant={bookingStatusVariant(booking.status)}>{booking.status}</Badge>
 			</li>
 		{:else}
 			<li class="px-4 py-6 text-center text-sm text-muted-foreground">No bookings yet.</li>
