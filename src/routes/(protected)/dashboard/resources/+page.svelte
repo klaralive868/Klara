@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { formatDateRange } from '$lib/format-date';
 	import { formatPriceCents } from '$lib/format-price';
-	import type { ResourceStatus } from '$lib/bookings/placeholder-resources';
+	import type { ResourceStatus } from '$lib/bookings/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

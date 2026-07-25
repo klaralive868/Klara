@@ -5,9 +5,9 @@ begin;
 select plan(6);
 
 -- Two organizations, two distinct real users, one membership each.
-insert into public.organizations (id, name) values
-  ('11111111-1111-1111-1111-111111111111', 'Org One'),
-  ('22222222-2222-2222-2222-222222222222', 'Org Two');
+insert into public.organizations (id, name, slug) values
+  ('11111111-1111-1111-1111-111111111111', 'Org One', 'org-one'),
+  ('22222222-2222-2222-2222-222222222222', 'Org Two', 'org-two');
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'member-one@example.com'),

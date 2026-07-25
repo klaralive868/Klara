@@ -25,6 +25,8 @@ import {
 	MANAGER_PASSWORD,
 	OPERATOR_EMAIL,
 	OPERATOR_PASSWORD,
+	RESOURCES_OWNER_EMAIL,
+	RESOURCES_OWNER_PASSWORD,
 	SECOND_ORG_EMAIL,
 	SECOND_ORG_PASSWORD,
 	STOCK_OWNER_EMAIL,
@@ -83,7 +85,8 @@ export default async function globalSetup() {
 		STOCK_OWNER_EMAIL,
 		LIST_TABLE_OWNER_EMAIL,
 		CUSTOMERS_OWNER_EMAIL,
-		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL
+		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
+		RESOURCES_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -124,7 +127,13 @@ export default async function globalSetup() {
 		IMAGES_OWNER_PASSWORD,
 		'owner'
 	);
-	await createActiveMember(admin, organization.id, STOCK_OWNER_EMAIL, STOCK_OWNER_PASSWORD, 'owner');
+	await createActiveMember(
+		admin,
+		organization.id,
+		STOCK_OWNER_EMAIL,
+		STOCK_OWNER_PASSWORD,
+		'owner'
+	);
 	await createActiveMember(
 		admin,
 		organization.id,
@@ -145,6 +154,13 @@ export default async function globalSetup() {
 		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
 		ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
 		'staff'
+	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		RESOURCES_OWNER_EMAIL,
+		RESOURCES_OWNER_PASSWORD,
+		'owner'
 	);
 
 	// A required text field and an optional select field — enough for

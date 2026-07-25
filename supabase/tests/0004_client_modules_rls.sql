@@ -3,9 +3,9 @@
 begin;
 select plan(5);
 
-insert into public.organizations (id, name) values
-  ('44444444-4444-4444-4444-444444444444', 'Org Four'),
-  ('55555555-5555-5555-5555-555555555555', 'Org Five');
+insert into public.organizations (id, name, slug) values
+  ('44444444-4444-4444-4444-444444444444', 'Org Four', 'org-four'),
+  ('55555555-5555-5555-5555-555555555555', 'Org Five', 'org-five');
 
 insert into auth.users (id, email) values
   ('99999999-9999-9999-9999-999999999999', 'member-four@example.com'),
