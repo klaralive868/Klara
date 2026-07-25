@@ -113,6 +113,35 @@ test('the server rejects a select value that is not one of the field definition\
 	expect(JSON.stringify(body)).toContain('Preferred groomer must be one of the allowed options.');
 });
 
+test('submitting a case-variant of an existing customer\'s email is rejected as a validation error, not a server error', async ({
+	page
+}) => {
+	await signIn(page, CUSTOMERS_OWNER_EMAIL, CUSTOMERS_OWNER_PASSWORD);
+
+	const firstName = uniqueName('E2E Duplicate Email Customer');
+	const email = `e2e-dup-${Date.now()}@example.com`;
+
+	await page.goto('/dashboard/customers/new');
+	await page.getByLabel('Name', { exact: true }).fill(firstName);
+	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Pet name').fill('Rex');
+	await page.getByRole('button', { name: 'Add customer' }).click();
+	await expect(page).toHaveURL('/dashboard/customers');
+
+	// Same address, different casing — the DB's case-insensitive unique
+	// index rejects this insert; the form should surface it as an ordinary
+	// validation message, not the generic 500 every other insert failure
+	// falls back to.
+	await page.goto('/dashboard/customers/new');
+	await page.getByLabel('Name', { exact: true }).fill(uniqueName('E2E Duplicate Email Customer Two'));
+	await page.getByLabel('Email').fill(email.toUpperCase());
+	await page.getByLabel('Pet name').fill('Fido');
+	await page.getByRole('button', { name: 'Add customer' }).click();
+
+	await expect(page.getByText('A customer with this email already exists in your organization.')).toBeVisible();
+	await expect(page).toHaveURL('/dashboard/customers/new');
+});
+
 test("a different organization's member cannot see or edit this organization's customers", async ({
 	page,
 	browser

@@ -57,6 +57,18 @@ export const actions: Actions = {
 		});
 
 		if (error) {
+			// 23505 here can only be customers_organization_id_email_lower_key
+			// (the other unique constraints on this table are keyed off ids,
+			// not submitted data) — a customer with this email (any casing)
+			// already exists in this organization. That's an ordinary,
+			// expected outcome of a duplicate submission, not a server
+			// failure, so it gets a field-validation-style message instead
+			// of the generic 500 every other insert failure falls back to.
+			if (error.code === '23505') {
+				return fail(400, {
+					message: 'A customer with this email already exists in your organization.'
+				});
+			}
 			return fail(500, { message: 'Could not create the customer. Please try again.' });
 		}
 
