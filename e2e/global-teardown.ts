@@ -8,6 +8,7 @@ import {
 	ADMIN_PROVISIONED_ORG_NAME_PREFIX,
 	ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX,
 	ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
+	BOOKINGS_OWNER_EMAIL,
 	CATALOG_OWNER_EMAIL,
 	CATEGORIES_OWNER_EMAIL,
 	CUSTOMERS_OWNER_EMAIL,
@@ -41,6 +42,7 @@ export default async function globalTeardown() {
 			candidate.email === LIST_TABLE_OWNER_EMAIL ||
 			candidate.email === CUSTOMERS_OWNER_EMAIL ||
 			candidate.email === ADMIN_PROVISIONING_NON_OPERATOR_EMAIL ||
+			candidate.email === BOOKINGS_OWNER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX) ||
 			candidate.email?.startsWith(ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX)
 	);

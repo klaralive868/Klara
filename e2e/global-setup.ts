@@ -13,6 +13,8 @@ import {
 import {
 	ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
 	ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
+	BOOKINGS_OWNER_EMAIL,
+	BOOKINGS_OWNER_PASSWORD,
 	CATALOG_OWNER_EMAIL,
 	CATALOG_OWNER_PASSWORD,
 	CATEGORIES_OWNER_EMAIL,
@@ -90,7 +92,8 @@ export default async function globalSetup() {
 		LIST_TABLE_OWNER_EMAIL,
 		CUSTOMERS_OWNER_EMAIL,
 		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
-		RESOURCES_OWNER_EMAIL
+		RESOURCES_OWNER_EMAIL,
+		BOOKINGS_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -166,6 +169,7 @@ export default async function globalSetup() {
 		RESOURCES_OWNER_PASSWORD,
 		'owner'
 	);
+	await createActiveMember(admin, organization.id, BOOKINGS_OWNER_EMAIL, BOOKINGS_OWNER_PASSWORD, 'owner');
 
 	// A required text field and an optional select field — enough for
 	// customers-crud.spec.ts to exercise both dynamic-field render paths

@@ -2,16 +2,19 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { PLACEHOLDER_CUSTOMERS, type PlaceholderCustomer } from '$lib/bookings/placeholder-customers';
+	import type { Customer } from '$lib/customers/types';
 
-	let { selected = $bindable(null) }: { selected: PlaceholderCustomer | null } = $props();
+	let {
+		customers,
+		selected = $bindable(null)
+	}: { customers: Customer[]; selected: Customer | null } = $props();
 
 	const id = $props.id();
 
-	// A local, mutable copy — "create new" appends to this without touching
-	// the shared placeholder module (same reasoning as any other static-UI
-	// local-state list: nothing here persists past a page reload yet).
-	let customers = $state([...PLACEHOLDER_CUSTOMERS]);
+	// Newly-created customers land here so they show up in the list/selection
+	// immediately without a full page reload — `customers` itself is a prop
+	// owned by the parent load, not mutated in place.
+	let createdCustomers = $state<Customer[]>([]);
 	let query = $state('');
 	let showCreateForm = $state(false);
 
@@ -19,27 +22,25 @@
 	let newEmail = $state('');
 	let newPhone = $state('');
 	let createError = $state('');
+	let creating = $state(false);
 
-	// The email <Input type="email"> only gets native constraint validation
-	// for free inside a <form> on submit — this button is deliberately
-	// type="button" (it doesn't submit the outer booking form), so the
-	// browser never runs that check. Validate explicitly instead of quietly
-	// accepting whatever was typed.
 	const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+	const allCustomers = $derived([...customers, ...createdCustomers]);
 
 	const matches = $derived(
 		query.trim()
-			? customers.filter((customer) => {
+			? allCustomers.filter((customer) => {
 					const needle = query.trim().toLowerCase();
 					return (
 						customer.fullName.toLowerCase().includes(needle) ||
-						customer.email.toLowerCase().includes(needle)
+						(customer.email ?? '').toLowerCase().includes(needle)
 					);
 				})
-			: customers
+			: allCustomers
 	);
 
-	function select(customer: PlaceholderCustomer) {
+	function select(customer: Customer) {
 		selected = customer;
 		query = '';
 		showCreateForm = false;
@@ -49,7 +50,7 @@
 		selected = null;
 	}
 
-	function createCustomer() {
+	async function createCustomer() {
 		if (!newName.trim()) {
 			createError = 'Enter a full name.';
 			return;
@@ -59,18 +60,34 @@
 			return;
 		}
 		createError = '';
+		creating = true;
 
-		const customer: PlaceholderCustomer = {
-			id: `new-${Date.now()}`,
-			fullName: newName.trim(),
-			email: newEmail.trim(),
-			phone: newPhone.trim()
-		};
-		customers = [...customers, customer];
-		select(customer);
-		newName = '';
-		newEmail = '';
-		newPhone = '';
+		try {
+			const response = await fetch('/dashboard/customers/quick-create', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					fullName: newName.trim(),
+					email: newEmail.trim(),
+					phone: newPhone.trim()
+				})
+			});
+			const body = await response.json();
+
+			if (!response.ok) {
+				createError = body.error ?? 'Could not create the customer. Please try again.';
+				return;
+			}
+
+			const customer = body.customer as Customer;
+			createdCustomers = [...createdCustomers, customer];
+			select(customer);
+			newName = '';
+			newEmail = '';
+			newPhone = '';
+		} finally {
+			creating = false;
+		}
 	}
 </script>
 
@@ -128,7 +145,7 @@
 				{#if createError}
 					<FieldError errors={[{ message: createError }]} />
 				{/if}
-				<Button type="button" onclick={createCustomer}>Add customer</Button>
+				<Button type="button" onclick={createCustomer} disabled={creating}>Add customer</Button>
 			</FieldGroup>
 		{/if}
 	</div>
