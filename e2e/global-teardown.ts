@@ -19,6 +19,7 @@ import {
 	LIST_TABLE_OWNER_EMAIL,
 	MANAGER_EMAIL,
 	OPERATOR_EMAIL,
+	RESOURCE_IMAGES_OWNER_EMAIL,
 	SECOND_ORG_EMAIL,
 	STOCK_OWNER_EMAIL,
 	TEST_USER_EMAIL
@@ -45,6 +46,7 @@ export default async function globalTeardown() {
 			candidate.email === ADMIN_PROVISIONING_NON_OPERATOR_EMAIL ||
 			candidate.email === BOOKINGS_OWNER_EMAIL ||
 			candidate.email === INQUIRIES_OWNER_EMAIL ||
+			candidate.email === RESOURCE_IMAGES_OWNER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX) ||
 			candidate.email?.startsWith(ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX)
 	);

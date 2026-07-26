@@ -15,6 +15,7 @@
 
 		<ResourceForm
 			initial={data.resource}
+			images={data.images}
 			seatCounts={data.seatCounts}
 			message={form?.success ? undefined : form?.message}
 		/>

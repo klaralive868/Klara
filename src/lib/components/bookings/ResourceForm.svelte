@@ -11,16 +11,19 @@
 	} from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import ResourceImageUploader from './ResourceImageUploader.svelte';
-	import type { Resource, SeatCounts } from '$lib/bookings/types';
-	import type { PlaceholderResourceImage } from '$lib/bookings/placeholder-resource-images';
+	import type { Resource, ResourceImage, SeatCounts } from '$lib/bookings/types';
 
 	let {
 		initial,
+		images,
 		seatCounts,
 		message
-	}: { initial?: Resource; seatCounts?: SeatCounts | null; message?: string } = $props();
-
-	let images = $state<PlaceholderResourceImage[]>([]);
+	}: {
+		initial?: Resource;
+		images?: readonly ResourceImage[];
+		seatCounts?: SeatCounts | null;
+		message?: string;
+	} = $props();
 
 	const id = $props.id();
 	const formId = `resource-form-${id}`;
@@ -133,9 +136,13 @@
 		<FieldError errors={[{ message }]} />
 	{/if}
 
-	{#if initial}
-		<ResourceImageUploader bind:images resourceId={initial.id} />
+	{#if initial && images}
+		<ResourceImageUploader {images} />
+	{:else if !initial}
+		<p class="text-sm text-muted-foreground">Save the resource first to add images.</p>
+	{/if}
 
+	{#if initial}
 		<div>
 			<p class="mb-2 text-sm font-medium">
 				Status: <span class="font-normal capitalize">{initial.status}</span>
