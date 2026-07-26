@@ -11,6 +11,13 @@
 -- spoofable by whoever controls the insert payload, since nothing ties it
 -- to the resource_id also being written. Deriving from the referenced
 -- resource's own organization_id instead makes that impossible to spoof.
+--
+-- insert/update also require customer_id to resolve to the caller's own
+-- organization — the FK on customer_id only proves the row exists, not who
+-- owns it, so validating resource_id alone would let an agent attach their
+-- own org's resource to a customer_id from a *different* organization,
+-- creating a cross-tenant booking that joins and exposes that foreign
+-- customer's name/email in the agent's own bookings views.
 create policy bookings_select_own_organization
 	on public.bookings for select
 	to authenticated
@@ -31,6 +38,11 @@ create policy bookings_insert_own_organization
 			where resources.id = bookings.resource_id
 			and resources.organization_id = public.current_organization_id()
 		)
+		and exists (
+			select 1 from public.customers
+			where customers.id = bookings.customer_id
+			and customers.organization_id = public.current_organization_id()
+		)
 	);
 
 create policy bookings_update_own_organization
@@ -48,6 +60,11 @@ create policy bookings_update_own_organization
 			select 1 from public.resources
 			where resources.id = bookings.resource_id
 			and resources.organization_id = public.current_organization_id()
+		)
+		and exists (
+			select 1 from public.customers
+			where customers.id = bookings.customer_id
+			and customers.organization_id = public.current_organization_id()
 		)
 	);
 
