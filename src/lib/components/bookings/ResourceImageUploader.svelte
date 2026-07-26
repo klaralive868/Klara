@@ -2,12 +2,40 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import type { PlaceholderResourceImage } from '$lib/bookings/placeholder-resource-images';
 
-	let { images = $bindable([]) }: { images: PlaceholderResourceImage[] } = $props();
+	let {
+		images = $bindable([]),
+		resourceId
+	}: { images: PlaceholderResourceImage[]; resourceId: string } = $props();
 
 	const id = $props.id();
 
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let files = $state<FileList | null>(null);
+
+	// Every image's url is a createObjectURL() blob URL (there's no Storage
+	// yet, #40's job) — the browser never reclaims that memory on its own,
+	// so every place an image stops being shown has to revoke it explicitly.
+	function revoke(image: PlaceholderResourceImage) {
+		URL.revokeObjectURL(image.url);
+	}
+
+	// SvelteKit reuses this component instance across client-side navigation
+	// between different resources' edit pages (only the route param
+	// changes) — without this, the previous resource's uploaded images (and
+	// their object URLs) would linger into the next resource's screen. The
+	// teardown reads `images` live (not a value captured when the effect
+	// last ran) so it always revokes whatever's actually accumulated by the
+	// time resourceId changes again, and also runs on unmount.
+	$effect(() => {
+		void resourceId;
+
+		return () => {
+			for (const image of images) {
+				revoke(image);
+			}
+			images = [];
+		};
+	});
 
 	const selectionLabel = $derived(
 		!files || files.length === 0
@@ -50,16 +78,19 @@
 	}
 
 	function remove(imageId: string) {
-		const wasPrimary = images.find((image) => image.id === imageId)?.isPrimary ?? false;
+		const removed = images.find((image) => image.id === imageId);
 		const remaining = images.filter((image) => image.id !== imageId);
 
 		// Removing the primary image promotes the next-oldest remaining one —
 		// mirrors the rule #40 will enforce for real (same precedent as above).
-		if (wasPrimary && remaining.length > 0) {
+		if (removed?.isPrimary && remaining.length > 0) {
 			remaining[0].isPrimary = true;
 		}
 
 		images = remaining;
+		if (removed) {
+			revoke(removed);
+		}
 	}
 </script>
 

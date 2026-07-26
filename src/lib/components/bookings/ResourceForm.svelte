@@ -134,7 +134,7 @@
 	{/if}
 
 	{#if initial}
-		<ResourceImageUploader bind:images />
+		<ResourceImageUploader bind:images resourceId={initial.id} />
 
 		<div>
 			<p class="mb-2 text-sm font-medium">
