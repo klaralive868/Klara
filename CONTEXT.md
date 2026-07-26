@@ -40,3 +40,18 @@ A single product listing belonging to one organization: name, description, price
 **Stock**:
 The available quantity of a Catalog Item at a given size (or, for sizeless Material Types, the item as a whole). Recorded per `(item, size)` pair, not embedded in the Material Type's size scheme — the size scheme says which sizes exist for a type; Stock says how many of each a specific item currently has.
 _Avoid_: Inventory (reserve for a possible future, more general inventory-management feature; Stock here is scoped specifically to Catalog items).
+
+### Bookings
+
+**Resource**:
+A bookable thing scoped to one organization: either a Provider (recurring weekly availability) or an Inventory Unit (a pool of interchangeable capacity). `resourceType` stays exactly these two values — a variant availability model (e.g. optional/uncapped capacity) is expressed as configuration on an Inventory Unit, not a third `resourceType` (Standards §4; see ADR-0006).
+
+**Uncapped resource**:
+An Inventory Unit resource with `quantity: null` — no hard capacity ceiling. Conflict-check never rejects a booking for such a resource on capacity grounds; it functions purely as a request log.
+_Avoid_: Unlimited (implies a deliberate design choice per-booking; "uncapped" names the resource's configured state).
+
+A Resource has a lifecycle status (`draft` | `published` | `archived`, with `archived` always reversible back to `draft`) — same shape as Catalog Item, for the same reason: it's dual-purpose (an agent's private working view vs. the public page customers see), and only `published` resources are publicly visible.
+
+**Travel Inquiry**:
+A customer's request for the agent to design a custom trip, with no existing Resource to book — upstream of and structurally separate from a Booking (which always references a specific Resource). May later be converted into a real Resource + Booking by the agent, but isn't one itself.
+_Avoid_: Booking, Request (both already mean something specific and resource-bound in this context).

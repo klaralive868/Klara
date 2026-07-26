@@ -4,6 +4,7 @@
 	import DashboardIcon from '@tabler/icons-svelte/icons/dashboard';
 	import InnerShadowTopIcon from '@tabler/icons-svelte/icons/inner-shadow-top';
 	import ListIcon from '@tabler/icons-svelte/icons/list';
+	import MessageCircleQuestionIcon from '@tabler/icons-svelte/icons/message-circle-question';
 	import PackageIcon from '@tabler/icons-svelte/icons/package';
 	import PlusIcon from '@tabler/icons-svelte/icons/plus';
 	import ShieldIcon from '@tabler/icons-svelte/icons/shield';
@@ -93,6 +94,19 @@
 		}
 	];
 
+	const inquiries = [
+		{
+			name: 'All inquiries',
+			url: resolve('/dashboard/inquiries'),
+			icon: MessageCircleQuestionIcon
+		},
+		{
+			name: 'Log inquiry',
+			url: resolve('/dashboard/inquiries/new'),
+			icon: PlusIcon
+		}
+	];
+
 	const navSecondary = $derived(
 		isOperator ? [{ title: 'Admin', url: resolve('/admin'), icon: ShieldIcon }] : []
 	);
@@ -119,6 +133,7 @@
 		<NavDocuments items={customers} label="Customers" />
 		<NavDocuments items={resources} label="Resources" />
 		<NavDocuments items={bookings} label="Bookings" />
+		<NavDocuments items={inquiries} label="Travel Inquiries" />
 		{#if navSecondary.length > 0}
 			<NavSecondary items={navSecondary} class="mt-auto" />
 		{/if}
