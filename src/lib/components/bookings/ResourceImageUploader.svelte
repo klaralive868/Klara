@@ -1,41 +1,14 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import type { PlaceholderResourceImage } from '$lib/bookings/placeholder-resource-images';
+	import { FieldError } from '$lib/components/ui/field/index.js';
+	import type { ResourceImage } from '$lib/bookings/types';
 
-	let {
-		images = $bindable([]),
-		resourceId
-	}: { images: PlaceholderResourceImage[]; resourceId: string } = $props();
+	let { images, message }: { images: readonly ResourceImage[]; message?: string } = $props();
 
 	const id = $props.id();
 
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let files = $state<FileList | null>(null);
-
-	// Every image's url is a createObjectURL() blob URL (there's no Storage
-	// yet, #40's job) — the browser never reclaims that memory on its own,
-	// so every place an image stops being shown has to revoke it explicitly.
-	function revoke(image: PlaceholderResourceImage) {
-		URL.revokeObjectURL(image.url);
-	}
-
-	// SvelteKit reuses this component instance across client-side navigation
-	// between different resources' edit pages (only the route param
-	// changes) — without this, the previous resource's uploaded images (and
-	// their object URLs) would linger into the next resource's screen. The
-	// teardown reads `images` live (not a value captured when the effect
-	// last ran) so it always revokes whatever's actually accumulated by the
-	// time resourceId changes again, and also runs on unmount.
-	$effect(() => {
-		void resourceId;
-
-		return () => {
-			for (const image of images) {
-				revoke(image);
-			}
-			images = [];
-		};
-	});
 
 	const selectionLabel = $derived(
 		!files || files.length === 0
@@ -44,58 +17,14 @@
 				? files[0].name
 				: `${files.length} files selected`
 	);
-
-	// No Storage to upload to yet (#40) — createObjectURL gives a real,
-	// browser-local preview of whatever the agent picked, so this still
-	// demonstrates the actual flow rather than a fake stand-in image.
-	function upload() {
-		if (!files || files.length === 0) {
-			return;
-		}
-
-		const uploaded: PlaceholderResourceImage[] = Array.from(files).map((file) => ({
-			id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-			isPrimary: false,
-			url: URL.createObjectURL(file)
-		}));
-
-		// First image ever added is auto-marked primary — mirrors the rule
-		// #40 will enforce for real (see catalog_item_images' own
-		// first-upload-primary trigger, the precedent this mirrors).
-		if (images.length === 0 && uploaded.length > 0) {
-			uploaded[0].isPrimary = true;
-		}
-
-		images = [...images, ...uploaded];
-		files = null;
-		if (fileInput) {
-			fileInput.value = '';
-		}
-	}
-
-	function setPrimary(imageId: string) {
-		images = images.map((image) => ({ ...image, isPrimary: image.id === imageId }));
-	}
-
-	function remove(imageId: string) {
-		const removed = images.find((image) => image.id === imageId);
-		const remaining = images.filter((image) => image.id !== imageId);
-
-		// Removing the primary image promotes the next-oldest remaining one —
-		// mirrors the rule #40 will enforce for real (same precedent as above).
-		if (removed?.isPrimary && remaining.length > 0) {
-			remaining[0].isPrimary = true;
-		}
-
-		images = remaining;
-		if (removed) {
-			revoke(removed);
-		}
-	}
 </script>
 
 <div>
 	<p class="mb-2 text-sm font-medium">Images</p>
+
+	{#if message}
+		<FieldError errors={[{ message }]} />
+	{/if}
 
 	{#if images.length > 0}
 		<div class="mb-3 flex flex-wrap gap-3">
@@ -109,34 +38,39 @@
 					{#if image.isPrimary}
 						<span class="text-xs font-medium text-primary">Primary</span>
 					{:else}
-						<Button type="button" variant="ghost" size="xs" onclick={() => setPrimary(image.id)}>
-							Set primary
-						</Button>
+						<form method="POST" action="?/setPrimaryImage">
+							<input type="hidden" name="imageId" value={image.id} />
+							<Button type="submit" variant="ghost" size="xs">Set primary</Button>
+						</form>
 					{/if}
-					<Button type="button" variant="ghost" size="xs" onclick={() => remove(image.id)}>
-						Remove
-					</Button>
+					<form method="POST" action="?/removeImage">
+						<input type="hidden" name="imageId" value={image.id} />
+						<Button type="submit" variant="ghost" size="xs">Remove</Button>
+					</form>
 				</div>
 			{/each}
 		</div>
 	{/if}
 
-	<label for="images-{id}" class="sr-only">Choose images to upload</label>
-	<input
-		bind:this={fileInput}
-		bind:files
-		id="images-{id}"
-		type="file"
-		accept="image/*"
-		multiple
-		tabindex="-1"
-		class="sr-only"
-	/>
-	<div class="flex flex-wrap items-center gap-3">
-		<Button type="button" variant="outline" onclick={() => fileInput?.click()}>
-			Choose files
-		</Button>
-		<span class="text-sm text-muted-foreground">{selectionLabel}</span>
-		<Button type="button" onclick={upload} disabled={!files || files.length === 0}>Upload</Button>
-	</div>
+	<form method="POST" action="?/uploadImages" enctype="multipart/form-data">
+		<label for="images-{id}" class="sr-only">Choose images to upload</label>
+		<input
+			bind:this={fileInput}
+			bind:files
+			id="images-{id}"
+			type="file"
+			name="images"
+			accept="image/*"
+			multiple
+			tabindex="-1"
+			class="sr-only"
+		/>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button type="button" variant="outline" onclick={() => fileInput?.click()}>
+				Choose files
+			</Button>
+			<span class="text-sm text-muted-foreground">{selectionLabel}</span>
+			<Button type="submit">Upload</Button>
+		</div>
+	</form>
 </div>

@@ -1,5 +1,14 @@
 export type ResourceStatus = 'draft' | 'published' | 'archived';
 
+// url is a plain public Storage URL (resource-images is a public bucket,
+// docs/adr/0007-resource-images-public-bucket.md), not signed/expiring —
+// unlike Catalog's equivalent, which deliberately keeps images private.
+export interface ResourceImage {
+	id: string;
+	isPrimary: boolean;
+	url: string;
+}
+
 export interface Resource {
 	id: string;
 	name: string;

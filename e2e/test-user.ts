@@ -91,3 +91,8 @@ export const BOOKINGS_OWNER_PASSWORD = 'password123';
 // spec-file-scoped users above.
 export const INQUIRIES_OWNER_EMAIL = 'e2e-inquiries-owner@example.com';
 export const INQUIRIES_OWNER_PASSWORD = 'password123';
+
+// resource-images.spec.ts's own dedicated user, same reasoning as the other
+// spec-file-scoped users above.
+export const RESOURCE_IMAGES_OWNER_EMAIL = 'e2e-resource-images-owner@example.com';
+export const RESOURCE_IMAGES_OWNER_PASSWORD = 'password123';

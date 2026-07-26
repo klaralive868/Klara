@@ -33,6 +33,8 @@ import {
 	MANAGER_PASSWORD,
 	OPERATOR_EMAIL,
 	OPERATOR_PASSWORD,
+	RESOURCE_IMAGES_OWNER_EMAIL,
+	RESOURCE_IMAGES_OWNER_PASSWORD,
 	RESOURCES_OWNER_EMAIL,
 	RESOURCES_OWNER_PASSWORD,
 	SECOND_ORG_EMAIL,
@@ -96,7 +98,8 @@ export default async function globalSetup() {
 		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
 		RESOURCES_OWNER_EMAIL,
 		BOOKINGS_OWNER_EMAIL,
-		INQUIRIES_OWNER_EMAIL
+		INQUIRIES_OWNER_EMAIL,
+		RESOURCE_IMAGES_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -178,6 +181,13 @@ export default async function globalSetup() {
 		organization.id,
 		INQUIRIES_OWNER_EMAIL,
 		INQUIRIES_OWNER_PASSWORD,
+		'owner'
+	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		RESOURCE_IMAGES_OWNER_EMAIL,
+		RESOURCE_IMAGES_OWNER_PASSWORD,
 		'owner'
 	);
 
