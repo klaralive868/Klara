@@ -27,12 +27,24 @@ create unique index resource_images_one_primary_per_resource
 	where is_primary;
 
 -- Auto-marks the first image uploaded for a resource as primary — same
--- trigger as catalog_item_images', see that migration's comment.
+-- trigger as catalog_item_images'. Additionally serializes concurrent
+-- inserts for the SAME resource (an advisory lock keyed by resource_id,
+-- held for the rest of the transaction): without it, two simultaneous
+-- first-uploads for one resource can each see "no primary yet" under MVCC
+-- snapshot isolation, both set is_primary = true, and the partial unique
+-- index below then rejects the second insert — an otherwise entirely valid
+-- upload — as if it were a real conflict. The lock makes the second
+-- request's trigger execution wait for the first's transaction to commit,
+-- so it correctly observes the now-existing primary and leaves its own row
+-- non-primary instead of racing it. Uploads for different resources hash to
+-- different lock keys and never block each other.
 create or replace function public.set_first_resource_image_primary()
 returns trigger
 language plpgsql
 as $$
 begin
+	perform pg_advisory_xact_lock(hashtext(new.resource_id::text));
+
 	if not exists (
 		select 1 from public.resource_images
 		where resource_id = new.resource_id and is_primary

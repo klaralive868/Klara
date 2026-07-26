@@ -3,6 +3,7 @@ import { resourceFromRow, type ResourceImage, type ResourceRow } from '$lib/book
 import { parseResourceForm } from '$lib/server/resources';
 import { getResourceSeatCounts } from '$lib/server/bookings';
 import { getActiveOrganizationId } from '$lib/server/organization';
+import { sniffImageType } from '$lib/server/image-sniff';
 import type { Actions, PageServerLoad } from './$types';
 
 const IMAGE_BUCKET = 'resource-images';
@@ -188,6 +189,22 @@ export const actions: Actions = {
 			});
 		}
 
+		// This bucket is public (ADR-0007) — an authenticated member's request
+		// fully controls the filename and the multipart part's declared
+		// Content-Type, so neither proves what the bytes actually are. Sniffing
+		// every file's real signature before any write is the only check a
+		// crafted request (a renamed script, a spoofed image/* Content-Type)
+		// can't bypass, and it's checked for the whole batch up front — same
+		// "reject before any write, not partway through" rule as the size
+		// check above.
+		const sniffed = await Promise.all(files.map((file) => sniffImageType(file)));
+		const invalidIndex = sniffed.findIndex((result) => result === null);
+		if (invalidIndex !== -1) {
+			return fail(400, {
+				message: `"${files[invalidIndex].name}" isn't a recognized image file.`
+			});
+		}
+
 		// All-or-nothing: if any file in the batch fails partway through, every
 		// earlier file committed so far in THIS call is rolled back (storage
 		// object + DB row) rather than left in place — same reasoning as
@@ -206,14 +223,16 @@ export const actions: Actions = {
 			await locals.supabase.storage.from(IMAGE_BUCKET).remove(committed.map((entry) => entry.path));
 		}
 
-		for (const file of files) {
+		for (const [index, file] of files.entries()) {
+			// Non-null: every file passed the sniff check above, or this loop
+			// would already have returned.
+			const detected = sniffed[index]!;
 			const imageId = crypto.randomUUID();
-			const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-			const path = `${organizationId}/${params.id}/${imageId}.${extension}`;
+			const path = `${organizationId}/${params.id}/${imageId}.${detected.extension}`;
 
 			const { error: uploadError } = await locals.supabase.storage
 				.from(IMAGE_BUCKET)
-				.upload(path, file, { contentType: file.type });
+				.upload(path, file, { contentType: detected.mimeType });
 			if (uploadError) {
 				await rollbackCommitted();
 				return fail(500, { message: 'Could not upload one or more images. Please try again.' });
@@ -275,22 +294,32 @@ export const actions: Actions = {
 			return fail(404, { message: 'Image not found.' });
 		}
 
-		const { error: deleteError } = await locals.supabase
-			.from('resource_images')
-			.delete()
-			.eq('id', imageId);
-		if (deleteError) {
-			return fail(500, { message: 'Could not remove the image. Please try again.' });
-		}
-
-		// The DB row is the source of truth for what images "exist" — a
-		// failure here leaves a harmless orphaned storage object rather than
-		// any inconsistent state, so it's logged but doesn't fail the action.
+		// Storage first, DB row second — the reverse of Catalog's equivalent
+		// action, deliberately. This bucket is public (ADR-0007): a storage
+		// object that outlives its DB row is reachable forever at a stable
+		// public URL with no remaining record that it was ever supposed to be
+		// deleted, no way to retry, and no way to even discover the leak. A DB
+		// row that outlives its storage object is the safe failure instead —
+		// the image just 404s from its now-broken URL, the row (and the
+		// "Remove" button) are still there for the agent to retry.
 		const { error: storageError } = await locals.supabase.storage
 			.from(IMAGE_BUCKET)
 			.remove([image.storage_path]);
 		if (storageError) {
 			console.error('resources: failed to remove storage object', storageError);
+			return fail(500, { message: 'Could not remove the image. Please try again.' });
+		}
+
+		const { error: deleteError } = await locals.supabase
+			.from('resource_images')
+			.delete()
+			.eq('id', imageId);
+		if (deleteError) {
+			console.error(
+				'resources: removed storage object but failed to delete its DB row',
+				deleteError
+			);
+			return fail(500, { message: 'Could not remove the image. Please try again.' });
 		}
 
 		return { success: true, message: 'Image removed.' };
