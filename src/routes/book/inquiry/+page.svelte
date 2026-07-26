@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
+	import { Field, FieldDescription, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 
 	const id = $props.id();
@@ -96,7 +96,11 @@
 		</FieldGroup>
 
 		<Field>
-			<Button type="submit">Send inquiry</Button>
+			<!-- Disabled, not just prevented — an enabled button that silently
+			     no-ops leaves a visitor believing their inquiry was sent when
+			     it wasn't. Re-enable once #47 wires a real submission. -->
+			<Button type="submit" disabled>Send inquiry</Button>
+			<FieldDescription>Submission isn't available yet — please check back soon.</FieldDescription>
 		</Field>
 	</form>
 </main>
