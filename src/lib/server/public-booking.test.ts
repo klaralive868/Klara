@@ -145,4 +145,51 @@ describe('findOrCreateCustomer', () => {
 		const result = await findOrCreateCustomer(supabase, 'org-1', 'Jane', 'jane@example.com', null);
 		expect(result).toBeNull();
 	});
+
+	// Shared by both the booking (#43) and inquiry (#47) public submission
+	// flows — a newly-created customer must be labeled with whichever flow
+	// actually created it, not always 'booking'.
+	it('defaults a newly-created customer to source: booking', async () => {
+		let insertedRow: Record<string, unknown> | undefined;
+		const supabase = {
+			from: () => ({
+				select: () => ({
+					eq: () => ({
+						ilike: () => ({
+							limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) })
+						})
+					})
+				}),
+				insert: (row: Record<string, unknown>) => {
+					insertedRow = row;
+					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+				}
+			})
+		} as unknown as SupabaseClient;
+
+		await findOrCreateCustomer(supabase, 'org-1', 'Jane', 'jane@example.com', null);
+		expect(insertedRow?.source).toBe('booking');
+	});
+
+	it('creates a newly-created customer with an explicit source', async () => {
+		let insertedRow: Record<string, unknown> | undefined;
+		const supabase = {
+			from: () => ({
+				select: () => ({
+					eq: () => ({
+						ilike: () => ({
+							limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) })
+						})
+					})
+				}),
+				insert: (row: Record<string, unknown>) => {
+					insertedRow = row;
+					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+				}
+			})
+		} as unknown as SupabaseClient;
+
+		await findOrCreateCustomer(supabase, 'org-1', 'Jane', 'jane@example.com', null, 'inquiry');
+		expect(insertedRow?.source).toBe('inquiry');
+	});
 });
