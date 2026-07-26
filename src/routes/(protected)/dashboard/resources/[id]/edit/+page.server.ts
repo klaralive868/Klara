@@ -3,7 +3,7 @@ import { resourceFromRow, type ResourceImage, type ResourceRow } from '$lib/book
 import { parseResourceForm } from '$lib/server/resources';
 import { getResourceSeatCounts } from '$lib/server/bookings';
 import { getActiveOrganizationId } from '$lib/server/organization';
-import { sniffImageType } from '$lib/server/image-sniff';
+import { sanitizeImage } from '$lib/server/image-sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
 const IMAGE_BUCKET = 'resource-images';
@@ -191,19 +191,23 @@ export const actions: Actions = {
 
 		// This bucket is public (ADR-0007) — an authenticated member's request
 		// fully controls the filename and the multipart part's declared
-		// Content-Type, so neither proves what the bytes actually are. Sniffing
-		// every file's real signature before any write is the only check a
-		// crafted request (a renamed script, a spoofed image/* Content-Type)
-		// can't bypass, and it's checked for the whole batch up front — same
-		// "reject before any write, not partway through" rule as the size
-		// check above.
-		const sniffed = await Promise.all(files.map((file) => sniffImageType(file)));
-		const invalidIndex = sniffed.findIndex((result) => result === null);
+		// Content-Type, so neither proves what the bytes actually are, and a
+		// magic-byte prefix check alone only proves a file *starts* like an
+		// image, not that the whole payload is one (a polyglot could still
+		// smuggle arbitrary content appended after a valid image header).
+		// sanitizeImage actually decodes each file and returns a fresh
+		// re-encoded buffer — content that isn't genuinely part of a valid,
+		// fully-decodable image never survives into what gets stored. Done
+		// for the whole batch up front, same "reject before any write, not
+		// partway through" rule as the size check above.
+		const sanitizedOrNull = await Promise.all(files.map((file) => sanitizeImage(file)));
+		const invalidIndex = sanitizedOrNull.findIndex((result) => result === null);
 		if (invalidIndex !== -1) {
 			return fail(400, {
 				message: `"${files[invalidIndex].name}" isn't a recognized image file.`
 			});
 		}
+		const sanitized = sanitizedOrNull as NonNullable<(typeof sanitizedOrNull)[number]>[];
 
 		// All-or-nothing: if any file in the batch fails partway through, every
 		// earlier file committed so far in THIS call is rolled back (storage
@@ -223,16 +227,16 @@ export const actions: Actions = {
 			await locals.supabase.storage.from(IMAGE_BUCKET).remove(committed.map((entry) => entry.path));
 		}
 
-		for (const [index, file] of files.entries()) {
-			// Non-null: every file passed the sniff check above, or this loop
-			// would already have returned.
-			const detected = sniffed[index]!;
+		for (const clean of sanitized) {
 			const imageId = crypto.randomUUID();
-			const path = `${organizationId}/${params.id}/${imageId}.${detected.extension}`;
+			const path = `${organizationId}/${params.id}/${imageId}.${clean.extension}`;
 
+			// Uploads sharp's own re-encoded buffer, never the original
+			// `file` — that's what actually makes the sanitize step count for
+			// something (see image-sanitize.ts's module comment).
 			const { error: uploadError } = await locals.supabase.storage
 				.from(IMAGE_BUCKET)
-				.upload(path, file, { contentType: detected.mimeType });
+				.upload(path, clean.buffer, { contentType: clean.mimeType });
 			if (uploadError) {
 				await rollbackCommitted();
 				return fail(500, { message: 'Could not upload one or more images. Please try again.' });
