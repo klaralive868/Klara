@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { EMAIL_PATTERN } from '$lib/email';
 import { PG_INTEGER_MAX } from '$lib/server/pg';
 
 export interface ParsedBookingForm {
@@ -12,8 +13,6 @@ export interface ParsedBookingForm {
 export type ParseBookingFormResult =
 	| { ok: true; value: ParsedBookingForm }
 	| { ok: false; message: string };
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function parseBookingForm(formData: FormData): ParseBookingFormResult {
 	const name = String(formData.get('name') ?? '').trim();
