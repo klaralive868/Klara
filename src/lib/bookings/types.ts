@@ -106,3 +106,58 @@ export function bookingStatusVariant(status: BookingStatus) {
 	if (status === 'cancelled') return 'destructive';
 	return 'outline';
 }
+
+export type TravelInquiryStatus = 'new' | 'in-progress' | 'converted' | 'closed';
+
+export interface TravelInquiry {
+	id: string;
+	customerId: string;
+	customerName: string;
+	customerEmail: string | null;
+	tripDescription: string;
+	preferredDates: string | null;
+	partySize: number | null;
+	budget: string | null;
+	notes: string | null;
+	status: TravelInquiryStatus;
+}
+
+// A travel inquiry is never displayed without knowing who it's for, so the
+// customer join is baked into the one select string every query uses — same
+// reasoning as BOOKING_SELECT above.
+export const TRAVEL_INQUIRY_SELECT =
+	'id, customer_id, trip_description, preferred_dates, party_size, budget, notes, status, customers(full_name, email)';
+
+export interface TravelInquiryRow {
+	id: string;
+	customer_id: string;
+	trip_description: string;
+	preferred_dates: string | null;
+	party_size: number | null;
+	budget: string | null;
+	notes: string | null;
+	status: TravelInquiryStatus;
+	customers: { full_name: string; email: string | null } | null;
+}
+
+export function travelInquiryFromRow(row: TravelInquiryRow): TravelInquiry {
+	return {
+		id: row.id,
+		customerId: row.customer_id,
+		customerName: row.customers?.full_name ?? 'Unknown customer',
+		customerEmail: row.customers?.email ?? null,
+		tripDescription: row.trip_description,
+		preferredDates: row.preferred_dates,
+		partySize: row.party_size,
+		budget: row.budget,
+		notes: row.notes,
+		status: row.status
+	};
+}
+
+export function travelInquiryStatusVariant(status: TravelInquiryStatus) {
+	if (status === 'in-progress') return 'default';
+	if (status === 'converted') return 'secondary';
+	if (status === 'closed') return 'destructive';
+	return 'outline';
+}

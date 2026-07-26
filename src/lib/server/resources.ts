@@ -1,4 +1,5 @@
 import { parseDollarsToCents } from '$lib/parse-dollars';
+import { PG_INTEGER_MAX } from '$lib/server/pg';
 
 export interface ParsedResourceForm {
 	name: string;
@@ -14,11 +15,6 @@ export type ParseResourceFormResult =
 	{ ok: true; value: ParsedResourceForm } | { ok: false; message: string };
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-// PostgreSQL's `integer` columns (price_cents, quantity) are 32-bit signed —
-// values beyond this would otherwise reach the DB and fail as a generic
-// server error instead of a field validation message.
-const PG_INTEGER_MAX = 2147483647;
 
 // The regex only checks shape ("digits-digits-digits") — it accepts
 // calendar-invalid dates like 2026-02-30, which `new Date(...)` silently

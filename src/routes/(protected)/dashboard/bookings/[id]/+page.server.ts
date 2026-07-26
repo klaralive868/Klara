@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { BOOKING_SELECT, bookingFromRow, type BookingRow } from '$lib/bookings/types';
-import { transitionBookingStatus } from '$lib/server/bookings';
+import { transitionStatus } from '$lib/server/status-transition';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	confirm: async ({ params, locals }) =>
-		transitionBookingStatus(locals.supabase, params.id, {
+		transitionStatus(locals.supabase, 'bookings', params.id, {
 			to: 'confirmed',
 			fromAnyOf: ['pending'],
 			genericErrorMessage: 'Could not confirm the booking. Please try again.',
@@ -37,7 +37,7 @@ export const actions: Actions = {
 	// Cancel works from either pending or confirmed — never a dead end, same
 	// reasoning as Resources' archive action having no status precondition.
 	cancel: async ({ params, locals }) =>
-		transitionBookingStatus(locals.supabase, params.id, {
+		transitionStatus(locals.supabase, 'bookings', params.id, {
 			to: 'cancelled',
 			fromAnyOf: ['pending', 'confirmed'],
 			genericErrorMessage: 'Could not cancel the booking. Please try again.',
@@ -46,7 +46,7 @@ export const actions: Actions = {
 		}),
 
 	complete: async ({ params, locals }) =>
-		transitionBookingStatus(locals.supabase, params.id, {
+		transitionStatus(locals.supabase, 'bookings', params.id, {
 			to: 'completed',
 			fromAnyOf: ['confirmed'],
 			genericErrorMessage: 'Could not complete the booking. Please try again.',

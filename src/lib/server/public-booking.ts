@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { PG_INTEGER_MAX } from '$lib/server/pg';
 
 export interface ParsedBookingForm {
 	name: string;
@@ -13,12 +14,6 @@ export type ParseBookingFormResult =
 	| { ok: false; message: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// bookings.traveler_count is a PostgreSQL `integer` column — the same class
-// of bug fixed for resources' price/quantity fields (Bookings #38): an
-// unbounded value would otherwise reach the DB and fail as a generic server
-// error instead of a field validation message.
-const PG_INTEGER_MAX = 2147483647;
 
 export function parseBookingForm(formData: FormData): ParseBookingFormResult {
 	const name = String(formData.get('name') ?? '').trim();
