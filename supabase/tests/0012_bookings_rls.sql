@@ -1,11 +1,11 @@
 -- RLS test: a member can see/create/update their own organization's
--- bookings, but not another organization's — including a regression proving
+-- bookings, but not another organization's — including regressions proving
 -- the EXISTS-based policy can't be spoofed by attaching an insert to a
--- resource_id belonging to a different organization than the caller's own
--- (Standards §1; the EXISTS pattern this guards against is documented in
--- docs/catalog-module.md).
+-- resource_id OR a customer_id belonging to a different organization than
+-- the caller's own (Standards §1; the EXISTS pattern this guards against is
+-- documented in docs/catalog-module.md).
 begin;
-select plan(8);
+select plan(9);
 
 insert into public.organizations (id, name, slug) values
   ('88888888-8888-8888-8888-888888888888', 'Org Eight', 'org-eight-bookings-rls'),
@@ -65,6 +65,19 @@ select throws_ok(
   '42501',
   'new row violates row-level security policy for table "bookings"',
   'a member cannot insert a booking against another organization''s resource (spoofed resource_id)'
+);
+
+-- Regression: member-eight cannot attach their own resource to a
+-- customer_id from a different organization either — the FK alone only
+-- proves the customer row exists, not who owns it, so the policy has to
+-- check customers.organization_id explicitly (this is the cross-tenant PII
+-- exposure the security review caught: a foreign customer's name/email
+-- would otherwise be joinable through the agent's own bookings views).
+select throws_ok(
+  $$insert into public.bookings (resource_id, customer_id, traveler_count, start_at, end_at) values ('20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000003', 1, '2026-08-12', '2026-08-19')$$,
+  '42501',
+  'new row violates row-level security policy for table "bookings"',
+  'a member cannot insert a booking against another organization''s customer (spoofed customer_id)'
 );
 
 -- As member-nine: cannot see or write org-eight's booking.

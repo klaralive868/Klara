@@ -83,6 +83,13 @@
 			newName = '';
 			newEmail = '';
 			newPhone = '';
+		} catch {
+			// A network failure or a non-JSON response (fetch() itself
+			// rejecting, or response.json() failing to parse) never reaches
+			// the !response.ok branch above — without this, the picker would
+			// just silently stay in "creating" state forever with no
+			// feedback at all.
+			createError = 'Could not create the customer. Please check your connection and try again.';
 		} finally {
 			creating = false;
 		}
