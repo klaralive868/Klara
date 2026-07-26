@@ -3,11 +3,13 @@
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import CustomerPicker from './CustomerPicker.svelte';
-	import type { PlaceholderCustomer } from '$lib/bookings/placeholder-customers';
+	import type { Customer } from '$lib/customers/types';
+
+	let { customers }: { customers: Customer[] } = $props();
 
 	const id = $props.id();
 
-	let customer = $state<PlaceholderCustomer | null>(null);
+	let customer = $state<Customer | null>(null);
 	let tripDescription = $state('');
 	let preferredDates = $state('');
 	let partySize = $state('');
@@ -19,7 +21,7 @@
 <form class="space-y-6" onsubmit={(event) => event.preventDefault()}>
 	<Field>
 		<FieldLabel>Customer</FieldLabel>
-		<CustomerPicker bind:selected={customer} />
+		<CustomerPicker {customers} bind:selected={customer} />
 	</Field>
 
 	<FieldGroup>
