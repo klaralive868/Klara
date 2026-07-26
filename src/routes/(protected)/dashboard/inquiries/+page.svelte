@@ -3,7 +3,7 @@
 	import SiteHeader from '$lib/components/site-header.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { travelInquiryStatusVariant } from '$lib/bookings/placeholder-inquiries';
+	import { travelInquiryStatusVariant } from '$lib/bookings/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

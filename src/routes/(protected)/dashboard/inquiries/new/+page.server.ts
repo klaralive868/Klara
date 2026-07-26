@@ -1,9 +1,8 @@
+import { fail, redirect } from '@sveltejs/kit';
 import { customerFromRow, type CustomerRow } from '$lib/customers/types';
-import type { PageServerLoad } from './$types';
+import { parseManualInquiryForm } from '$lib/server/inquiries';
+import type { Actions, PageServerLoad } from './$types';
 
-// The customer picker is real (Bookings #44 wired it to the customers
-// table); everything else on this page is still placeholder-only per this
-// ticket (#45) — inquiries themselves have no table yet, that's #48's job.
 export const load: PageServerLoad = async ({ locals }) => {
 	const { data, error } = await locals.supabase
 		.from('customers')
@@ -16,4 +15,33 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	return { customers: (data as CustomerRow[]).map(customerFromRow) };
+};
+
+export const actions: Actions = {
+	default: async ({ request, locals }) => {
+		const formData = await request.formData();
+		const parsed = parseManualInquiryForm(formData);
+		if (!parsed.ok) {
+			return fail(400, { message: parsed.message });
+		}
+
+		// Always logged 'new' — matches the table default and the same
+		// "a manual entry is a request, not a decision" rule bookings/#43
+		// applies to public submissions.
+		const { error: insertError } = await locals.supabase.from('travel_inquiries').insert({
+			customer_id: parsed.value.customerId,
+			trip_description: parsed.value.tripDescription,
+			preferred_dates: parsed.value.preferredDates,
+			party_size: parsed.value.partySize,
+			budget: parsed.value.budget,
+			notes: parsed.value.notes,
+			status: 'new'
+		});
+
+		if (insertError) {
+			return fail(500, { message: 'Could not log the inquiry. Please try again.' });
+		}
+
+		throw redirect(303, '/dashboard/inquiries');
+	}
 };

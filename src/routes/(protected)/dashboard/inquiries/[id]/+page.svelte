@@ -1,45 +1,34 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import SiteHeader from '$lib/components/site-header.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
-	import {
-		travelInquiryStatusVariant,
-		type TravelInquiryStatus
-	} from '$lib/bookings/placeholder-inquiries';
-	import type { PageData } from './$types';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { travelInquiryStatusVariant } from '$lib/bookings/types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const id = $props.id();
-
-	const STATUS_OPTIONS: TravelInquiryStatus[] = ['new', 'in-progress', 'converted', 'closed'];
-
-	// Locally mutable so the status control below has something to
-	// demonstrate — this is placeholder-only, nothing persists past a
-	// reload yet (#48 wires the real update).
-	let status = $state<TravelInquiryStatus>(untrack(() => data.inquiry.status));
-
-	// SvelteKit reuses this component instance across client-side
-	// navigation between different inquiry ids (only the route param
-	// changes) — resync whenever a fresh `data` arrives, same fix as the
-	// booking detail page (#41's review).
-	$effect(() => {
-		status = data.inquiry.status;
-	});
+	const formId = `inquiry-form-${id}`;
 </script>
 
 <SiteHeader title="Inquiry" />
 <div class="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
 	<div class="max-w-lg space-y-6">
+		{#if form?.success}
+			<p class="text-sm font-normal text-green-700" role="status">{form.message}</p>
+		{:else if form?.message}
+			<p class="text-sm text-destructive" role="alert">{form.message}</p>
+		{/if}
+
 		<div class="flex items-center justify-between">
 			<h2 class="text-lg font-semibold">{data.inquiry.customerName}</h2>
-			<Badge variant={travelInquiryStatusVariant(status)}>{status}</Badge>
+			<Badge variant={travelInquiryStatusVariant(data.inquiry.status)}>{data.inquiry.status}</Badge>
 		</div>
 
 		<dl class="space-y-3 text-sm">
 			<div>
 				<dt class="text-muted-foreground">Customer</dt>
-				<dd>{data.inquiry.customerName} · {data.inquiry.customerEmail}</dd>
+				<dd>{data.inquiry.customerName} · {data.inquiry.customerEmail ?? 'no email'}</dd>
 			</div>
 			<div>
 				<dt class="text-muted-foreground">Trip description</dt>
@@ -63,17 +52,15 @@
 			</div>
 		</dl>
 
-		<div>
-			<label for="status-{id}" class="mb-2 block text-sm font-medium">Status</label>
-			<select
-				id="status-{id}"
-				bind:value={status}
-				class="h-9 w-full max-w-48 rounded-3xl border border-input bg-transparent px-3 text-sm capitalize"
-			>
-				{#each STATUS_OPTIONS as option (option)}
-					<option value={option}>{option}</option>
-				{/each}
-			</select>
-		</div>
+		<form id={formId} method="POST" class="flex gap-2">
+			{#if data.inquiry.status === 'new'}
+				<Button type="submit" formaction="?/startProgress">Start progress</Button>
+				<Button type="submit" variant="outline" formaction="?/convert">Convert</Button>
+				<Button type="submit" variant="outline" formaction="?/close">Close</Button>
+			{:else if data.inquiry.status === 'in-progress'}
+				<Button type="submit" formaction="?/convert">Convert</Button>
+				<Button type="submit" variant="outline" formaction="?/close">Close</Button>
+			{/if}
+		</form>
 	</div>
 </div>

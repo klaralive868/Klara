@@ -86,3 +86,8 @@ export const RESOURCES_OWNER_PASSWORD = 'password123';
 // spec-file-scoped users above.
 export const BOOKINGS_OWNER_EMAIL = 'e2e-bookings-owner@example.com';
 export const BOOKINGS_OWNER_PASSWORD = 'password123';
+
+// inquiry-crud.spec.ts's own dedicated user, same reasoning as the other
+// spec-file-scoped users above.
+export const INQUIRIES_OWNER_EMAIL = 'e2e-inquiries-owner@example.com';
+export const INQUIRIES_OWNER_PASSWORD = 'password123';
