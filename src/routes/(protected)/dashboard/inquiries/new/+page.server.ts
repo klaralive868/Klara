@@ -17,12 +17,29 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return { customers: (data as CustomerRow[]).map(customerFromRow) };
 };
 
+// Raw (unparsed) form values to hand back on failure — a plain
+// method="POST" submission is a full page navigation, so nothing in the
+// component's local $state survives a failed attempt on its own. Kept
+// separate from ParsedManualInquiryForm since these are pre-validation
+// strings straight off the form, not the parsed/typed result.
+function submittedValues(formData: FormData) {
+	return {
+		customerId: String(formData.get('customerId') ?? ''),
+		tripDescription: String(formData.get('tripDescription') ?? ''),
+		preferredDates: String(formData.get('preferredDates') ?? ''),
+		partySize: String(formData.get('partySize') ?? ''),
+		budget: String(formData.get('budget') ?? ''),
+		notes: String(formData.get('notes') ?? '')
+	};
+}
+
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		const formData = await request.formData();
+		const values = submittedValues(formData);
 		const parsed = parseManualInquiryForm(formData);
 		if (!parsed.ok) {
-			return fail(400, { message: parsed.message });
+			return fail(400, { message: parsed.message, values });
 		}
 
 		// Always logged 'new' — matches the table default and the same
@@ -39,7 +56,7 @@ export const actions: Actions = {
 		});
 
 		if (insertError) {
-			return fail(500, { message: 'Could not log the inquiry. Please try again.' });
+			return fail(500, { message: 'Could not log the inquiry. Please try again.', values });
 		}
 
 		throw redirect(303, '/dashboard/inquiries');
