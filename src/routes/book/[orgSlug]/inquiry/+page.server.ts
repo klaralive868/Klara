@@ -41,13 +41,16 @@ export const actions: Actions = {
 
 		// Reuses the exact match-or-create-by-email logic built for booking
 		// submissions (#43) — same identity rule, same DB-level race
-		// protection, no need to re-derive either.
+		// protection, no need to re-derive either. source: 'inquiry' so a
+		// customer created purely through this flow isn't mislabeled as
+		// having come from a booking.
 		const customer = await findOrCreateCustomer(
 			admin,
 			organization.id,
 			parsed.value.name,
 			parsed.value.email,
-			parsed.value.phone
+			parsed.value.phone,
+			'inquiry'
 		);
 		if (!customer) {
 			return fail(500, { message: GENERIC_ERROR });

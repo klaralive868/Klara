@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { EMAIL_PATTERN } from '$lib/email';
+import type { CustomerSource } from '$lib/customers/types';
 import { PG_INTEGER_MAX } from '$lib/server/pg';
 
 export interface ParsedBookingForm {
@@ -87,9 +88,11 @@ const UNIQUE_VIOLATION = '23505';
 
 // Matches by (organization_id, email) case-insensitively, reusing an
 // existing customer without overwriting their stored name/phone — a repeat
-// visitor's second booking shouldn't silently clobber whatever the business
-// already has on file for them. Creates one with source: 'booking' only
-// when no match exists.
+// visitor's second submission shouldn't silently clobber whatever the
+// business already has on file for them. Creates one with the given
+// `source` only when no match exists — shared by both the booking (#43)
+// and inquiry (#47) public submission flows, so the caller says which one
+// actually created the record rather than this function assuming.
 //
 // The lookup-then-insert below still has a race window between two
 // concurrent first-time requests for the same email — closed at the DB
@@ -103,7 +106,8 @@ export async function findOrCreateCustomer(
 	organizationId: string,
 	fullName: string,
 	email: string,
-	phone: string | null
+	phone: string | null,
+	source: CustomerSource = 'booking'
 ): Promise<MatchedCustomer | null> {
 	const existing = await findCustomerByEmail(supabase, organizationId, email);
 	if (existing) {
@@ -117,7 +121,7 @@ export async function findOrCreateCustomer(
 			full_name: fullName,
 			email,
 			phone,
-			source: 'booking'
+			source
 		})
 		.select('id')
 		.single();

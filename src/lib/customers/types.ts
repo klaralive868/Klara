@@ -1,6 +1,6 @@
 export { EMAIL_PATTERN as CUSTOMER_EMAIL_PATTERN } from '$lib/email';
 
-export type CustomerSource = 'booking' | 'manual' | 'import';
+export type CustomerSource = 'booking' | 'inquiry' | 'manual' | 'import';
 export type CustomerStatus = 'active' | 'archived';
 
 export interface Customer {

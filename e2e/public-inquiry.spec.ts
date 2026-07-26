@@ -33,7 +33,7 @@ test('submits an inquiry with no session, scoped to the right organization', asy
 		.eq('email', email)
 		.single();
 	expect(customer?.organization_id).toBe(organization?.id);
-	expect(customer?.source).toBe('booking');
+	expect(customer?.source).toBe('inquiry');
 
 	const { data: inquiry } = await admin
 		.from('travel_inquiries')
