@@ -13,6 +13,10 @@
 			<p class="mb-4 text-sm font-normal text-green-700" role="status">{form.message}</p>
 		{/if}
 
-		<ResourceForm initial={data.resource} message={form?.success ? undefined : form?.message} />
+		<ResourceForm
+			initial={data.resource}
+			seatCounts={data.seatCounts}
+			message={form?.success ? undefined : form?.message}
+		/>
 	</div>
 </div>

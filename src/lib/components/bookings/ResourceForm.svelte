@@ -10,9 +10,13 @@
 		FieldError
 	} from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import type { Resource } from '$lib/bookings/types';
+	import type { Resource, SeatCounts } from '$lib/bookings/types';
 
-	let { initial, message }: { initial?: Resource; message?: string } = $props();
+	let {
+		initial,
+		seatCounts,
+		message
+	}: { initial?: Resource; seatCounts?: SeatCounts | null; message?: string } = $props();
 
 	const id = $props.id();
 	const formId = `resource-form-${id}`;
@@ -146,6 +150,15 @@
 					</Button>
 				{/if}
 			</div>
+		</div>
+	{/if}
+
+	{#if seatCounts}
+		<div>
+			<p class="mb-1 text-sm font-medium">Seats</p>
+			<p class="text-sm text-muted-foreground">
+				{seatCounts.confirmed} confirmed · {seatCounts.pending} pending · {initial?.quantity} capacity
+			</p>
 		</div>
 	{/if}
 

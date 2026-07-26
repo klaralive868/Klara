@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { resourceFromRow, type ResourceRow } from '$lib/bookings/types';
 import { parseResourceForm } from '$lib/server/resources';
+import { getResourceSeatCounts } from '$lib/server/bookings';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -23,7 +24,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, 'Resource not found');
 	}
 
-	return { resource: resourceFromRow(data as ResourceRow) };
+	const resource = resourceFromRow(data as ResourceRow);
+
+	// Only meaningful when a seat limit is actually set — an uncapped
+	// resource has nothing for these counts to track against.
+	const seatCounts =
+		resource.quantity !== null ? await getResourceSeatCounts(locals.supabase, resource.id) : null;
+
+	return { resource, seatCounts };
 };
 
 export const actions: Actions = {
