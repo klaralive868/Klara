@@ -6,9 +6,9 @@
 begin;
 select plan(25);
 
-insert into public.organizations (id, name) values
-  ('a0000000-0000-0000-0000-00000000000a', 'Org A'),
-  ('b0000000-0000-0000-0000-00000000000b', 'Org B');
+insert into public.organizations (id, name, slug) values
+  ('a0000000-0000-0000-0000-00000000000a', 'Org A', 'org-a-customers'),
+  ('b0000000-0000-0000-0000-00000000000b', 'Org B', 'org-b-customers');
 
 insert into auth.users (id, email) values
   ('a1111111-1111-1111-1111-111111111111', 'member-a@example.com'),

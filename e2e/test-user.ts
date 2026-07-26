@@ -76,3 +76,13 @@ export const ADMIN_PROVISIONED_ORG_NAME_PREFIX = 'E2E Admin Client ';
 // spec-file-scoped users above).
 export const ADMIN_PROVISIONING_NON_OPERATOR_EMAIL = 'e2e-admin-non-operator@example.com';
 export const ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD = 'password123';
+
+// resource-crud.spec.ts's own dedicated user, same reasoning as the other
+// spec-file-scoped users above.
+export const RESOURCES_OWNER_EMAIL = 'e2e-resources-owner@example.com';
+export const RESOURCES_OWNER_PASSWORD = 'password123';
+
+// booking-crud.spec.ts's own dedicated user, same reasoning as the other
+// spec-file-scoped users above.
+export const BOOKINGS_OWNER_EMAIL = 'e2e-bookings-owner@example.com';
+export const BOOKINGS_OWNER_PASSWORD = 'password123';

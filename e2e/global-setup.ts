@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
 	createAdminClient,
+	E2E_BOOKING_DRAFT_RESOURCE_NAME,
+	E2E_BOOKING_ORG_NAME,
+	E2E_BOOKING_ORG_SLUG,
+	E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
 	E2E_SECOND_ORG_NAME,
 	E2E_SECOND_ORG_SLUG,
 	E2E_TEST_ORG_NAME,
@@ -9,6 +13,8 @@ import {
 import {
 	ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
 	ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
+	BOOKINGS_OWNER_EMAIL,
+	BOOKINGS_OWNER_PASSWORD,
 	CATALOG_OWNER_EMAIL,
 	CATALOG_OWNER_PASSWORD,
 	CATEGORIES_OWNER_EMAIL,
@@ -25,6 +31,8 @@ import {
 	MANAGER_PASSWORD,
 	OPERATOR_EMAIL,
 	OPERATOR_PASSWORD,
+	RESOURCES_OWNER_EMAIL,
+	RESOURCES_OWNER_PASSWORD,
 	SECOND_ORG_EMAIL,
 	SECOND_ORG_PASSWORD,
 	STOCK_OWNER_EMAIL,
@@ -83,7 +91,9 @@ export default async function globalSetup() {
 		STOCK_OWNER_EMAIL,
 		LIST_TABLE_OWNER_EMAIL,
 		CUSTOMERS_OWNER_EMAIL,
-		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL
+		ADMIN_PROVISIONING_NON_OPERATOR_EMAIL,
+		RESOURCES_OWNER_EMAIL,
+		BOOKINGS_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -124,7 +134,13 @@ export default async function globalSetup() {
 		IMAGES_OWNER_PASSWORD,
 		'owner'
 	);
-	await createActiveMember(admin, organization.id, STOCK_OWNER_EMAIL, STOCK_OWNER_PASSWORD, 'owner');
+	await createActiveMember(
+		admin,
+		organization.id,
+		STOCK_OWNER_EMAIL,
+		STOCK_OWNER_PASSWORD,
+		'owner'
+	);
 	await createActiveMember(
 		admin,
 		organization.id,
@@ -146,6 +162,14 @@ export default async function globalSetup() {
 		ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD,
 		'staff'
 	);
+	await createActiveMember(
+		admin,
+		organization.id,
+		RESOURCES_OWNER_EMAIL,
+		RESOURCES_OWNER_PASSWORD,
+		'owner'
+	);
+	await createActiveMember(admin, organization.id, BOOKINGS_OWNER_EMAIL, BOOKINGS_OWNER_PASSWORD, 'owner');
 
 	// A required text field and an optional select field — enough for
 	// customers-crud.spec.ts to exercise both dynamic-field render paths
@@ -205,4 +229,38 @@ export default async function globalSetup() {
 		SECOND_ORG_PASSWORD,
 		'owner'
 	);
+
+	// public-booking.spec.ts has no dashboard session to create resources
+	// through the UI (it's exercising the unauthenticated public flow), so
+	// its published/draft resources are seeded directly here instead.
+	const { data: bookingOrganization, error: bookingOrgError } = await admin
+		.from('organizations')
+		.insert({ name: E2E_BOOKING_ORG_NAME, slug: E2E_BOOKING_ORG_SLUG })
+		.select()
+		.single();
+	if (bookingOrgError || !bookingOrganization) {
+		throw new Error(`Failed to create e2e public booking organization: ${bookingOrgError?.message}`);
+	}
+
+	const { error: bookingResourcesError } = await admin.from('resources').insert([
+		{
+			organization_id: bookingOrganization.id,
+			name: E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
+			departure_date: '2026-08-12',
+			return_date: '2026-08-19',
+			price_cents: 199900,
+			status: 'published'
+		},
+		{
+			organization_id: bookingOrganization.id,
+			name: E2E_BOOKING_DRAFT_RESOURCE_NAME,
+			departure_date: '2026-09-01',
+			return_date: '2026-09-08',
+			price_cents: 100000,
+			status: 'draft'
+		}
+	]);
+	if (bookingResourcesError) {
+		throw new Error(`Failed to seed e2e public booking resources: ${bookingResourcesError.message}`);
+	}
 }

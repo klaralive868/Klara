@@ -6,9 +6,9 @@
 begin;
 select plan(18);
 
-insert into public.organizations (id, name) values
-  ('c0000000-0000-0000-0000-00000000000c', 'Org C'),
-  ('d0000000-0000-0000-0000-00000000000d', 'Org D');
+insert into public.organizations (id, name, slug) values
+  ('c0000000-0000-0000-0000-00000000000c', 'Org C', 'org-c-item-images'),
+  ('d0000000-0000-0000-0000-00000000000d', 'Org D', 'org-d-item-images');
 
 insert into auth.users (id, email) values
   ('c1111111-1111-1111-1111-111111111111', 'member-c@example.com'),

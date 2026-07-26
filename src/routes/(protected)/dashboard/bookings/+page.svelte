@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { formatDateRange } from '$lib/format-date';
-	import { bookingStatusVariant } from '$lib/bookings/placeholder-bookings';
+	import { bookingStatusVariant } from '$lib/bookings/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

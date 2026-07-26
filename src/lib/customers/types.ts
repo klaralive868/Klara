@@ -1,3 +1,8 @@
+// Shared by every place that validates a customer email client- or
+// server-side (CustomerPicker's inline quick-create, the quick-create
+// endpoint it calls) — one pattern, not a copy that could drift.
+export const CUSTOMER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export type CustomerSource = 'booking' | 'manual' | 'import';
 export type CustomerStatus = 'active' | 'archived';
 
