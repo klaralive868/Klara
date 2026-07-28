@@ -2,7 +2,7 @@
 
 Travel-package booking requests for WorldView Travel Service — the Bookings module's first real slice, built against a real client's immediate need rather than the Brief's originally-planned provider-based (vet/salon) tracer bullet ([ADR-0006](./adr/0006-travel-package-bookings-before-provider-slice.md)). Two-sided: an authenticated agent portal to manage package departures and review requests, and a new unauthenticated public surface for a business's own customers to browse and submit requests.
 
-Built across 13 tickets tracked under parent issue [#35](https://github.com/klaralive868/Klara/issues/35), all merged to `main`. Full spec: [`docs/bookings-travel-packages-spec.md`](./bookings-travel-packages-spec.md). Backed by two ADRs: [0006](./adr/0006-travel-package-bookings-before-provider-slice.md) (why this slice, not the Brief's planned one) and [0007](./adr/0007-resource-images-public-bucket.md) (resource images are public, unlike Catalog's private bucket).
+Built across 14 tickets tracked under parent issue [#35](https://github.com/klaralive868/Klara/issues/35). Full spec: [`docs/bookings-travel-packages-spec.md`](./bookings-travel-packages-spec.md). Backed by three ADRs: [0006](./adr/0006-travel-package-bookings-before-provider-slice.md) (why this slice, not the Brief's planned one), [0007](./adr/0007-resource-images-public-bucket.md) (resource images are public, unlike Catalog's private bucket), and [0008](./adr/0008-public-api-surface-per-module.md) (the `api/v1` public API surface, below — a standing pattern first implemented here).
 
 ## Domain model
 
@@ -89,6 +89,19 @@ Public bucket `resource-images` (`public: true`) — the one deliberate divergen
 
 Public writes never touch RLS by design — the server action resolves the org from the URL slug, rate-limits, and writes via the service-role client. The action's own logic is the entire security boundary for that path.
 
+**Public API** (unauthenticated, CORS-gated, `src/routes/api/v1/bookings/[orgSlug]/...`) — ticket [#62](https://github.com/klaralive868/Klara/issues/62), the first implementation of the standing pattern formalized in [ADR-0008](./adr/0008-public-api-surface-per-module.md) / Standards §12. Lets a client's own separately-hosted website submit into Klara without becoming a Klara page:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/v1/bookings/[orgSlug]/resources` | List published resources — JSON equivalent of `GET /book/[orgSlug]`. |
+| `GET /api/v1/bookings/[orgSlug]/resources/[id]` | One published resource — JSON equivalent of the detail half of `GET /book/[orgSlug]/[id]`. |
+| `POST /api/v1/bookings/[orgSlug]/resources/[id]/book` | Submit a booking — JSON equivalent of `POST /book/[orgSlug]/[id]`'s `default` action. |
+| `POST /api/v1/bookings/[orgSlug]/inquiries` | Submit an inquiry — JSON equivalent of `POST /book/[orgSlug]/inquiry`'s `default` action. |
+
+Every route also exports `OPTIONS` for CORS preflight. All four share [`src/lib/server/public-api.ts`](../src/lib/server/public-api.ts)'s `resolvePublicApiRequest` — module-agnostic, reusable by any future module's API surface — which resolves the org from the slug and checks the request's `Origin` header against `organizations.allowed_origins` (fail-closed: an unset/empty allowlist, or a request with no `Origin` header at all, is rejected the same as an origin not on the list). Body-parsing and rate-limiting stay in each endpoint, same as the page actions, since rate-limit bucket keys depend on the parsed body.
+
+`parseBookingForm`/`parseInquiryForm` (`src/lib/server/public-booking.ts`, `public-inquiry.ts`) take a plain record rather than `FormData` specifically so both the page action (`Object.fromEntries(formData)`) and this JSON API share one validation implementation — no duplicated business logic between the two entry points (ADR-0008's non-negotiable).
+
 ### Rate limiting
 
 Reuses the existing in-memory `src/lib/server/rate-limit.ts` (same module sign-in uses):
@@ -100,9 +113,9 @@ Reuses the existing in-memory `src/lib/server/rate-limit.ts` (same module sign-i
 
 | Layer | Coverage |
 |---|---|
-| Vitest (unit) | Public + agent form validation; `image-sanitize.ts`'s decode/re-encode logic, including a dedicated polyglot-attack test (valid image header + malicious appended payload → stripped). |
+| Vitest (unit) | Public + agent form validation; `image-sanitize.ts`'s decode/re-encode logic, including a dedicated polyglot-attack test (valid image header + malicious appended payload → stripped); `isOriginAllowed` (`public-api.test.ts`) — allowed/unlisted/empty-allowlist/missing-`Origin`-header cases. |
 | pgTAP (RLS) | `supabase/tests/0011`–`0014` — own-org allowed / cross-org denied for `resources`, `bookings`, `travel_inquiries`, `resource_images`. |
-| Playwright (e2e) | `resource-crud`, `booking-crud`, `inquiry-crud`, `resource-images`, `public-booking`, `public-inquiry` — agent CRUD/lifecycle flows plus, new for this module, unauthenticated public-flow tests (submit with no session, verify org scoping, draft/archived resources inaccessible publicly, customer dedup, cross-org isolation, rate-limiting). |
+| Playwright (e2e) | `resource-crud`, `booking-crud`, `inquiry-crud`, `resource-images`, `public-booking`, `public-inquiry`, `public-api-bookings` — agent CRUD/lifecycle flows, unauthenticated public-page-action-flow tests, and (new) the `api/v1/bookings` surface: preflight headers, allowed/rejected/missing origin, successful book/inquiry, unknown-org 404, cross-org isolation, rate-limiting, and a regression check that the page-action flows still work post-refactor. |
 
 Each spec uses its own dedicated e2e test user (`RESOURCES_OWNER_EMAIL`, `BOOKINGS_OWNER_EMAIL`, `INQUIRIES_OWNER_EMAIL`, `RESOURCE_IMAGES_OWNER_EMAIL`) so parallel sign-ins don't share a rate-limit bucket across files; cross-org checks reuse the existing generic `SECOND_ORG_EMAIL`.
 
