@@ -5,14 +5,13 @@ import { getOrganizationBySlug } from '$lib/server/public-organization';
 import { getPublishedResource } from '$lib/server/public-resources';
 import type { PublicResource } from '$lib/bookings/placeholder-resources';
 import {
+	checkBookingRateLimit,
 	createBooking,
 	findOrCreateCustomer,
 	parseBookingForm
 } from '$lib/server/public-booking';
-import { checkRateLimit, rateLimitKey } from '$lib/server/rate-limit';
 import type { Actions, PageServerLoad } from './$types';
 
-const BOOKING_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
 const RATE_LIMITED_ERROR = 'Too many requests. Please try again later.';
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
@@ -59,17 +58,12 @@ export const actions: Actions = {
 		const { organizationId, resource } = resolved;
 
 		const formData = await request.formData();
-		const parsed = parseBookingForm(formData);
+		const parsed = parseBookingForm(Object.fromEntries(formData));
 		if (!parsed.ok) {
 			return fail(400, { message: parsed.message });
 		}
 
-		// Lowercased so casing variants of the same address share one bucket —
-		// customer matching is already case-insensitive (findOrCreateCustomer),
-		// so a verbatim-cased key would otherwise grant a fresh 5-request
-		// allowance per casing variant of one real email.
-		const key = rateLimitKey('booking', getClientAddress(), parsed.value.email.toLowerCase());
-		if (!checkRateLimit(key, BOOKING_RATE_LIMIT)) {
+		if (!checkBookingRateLimit(getClientAddress(), parsed.value.email)) {
 			return fail(429, { message: RATE_LIMITED_ERROR });
 		}
 

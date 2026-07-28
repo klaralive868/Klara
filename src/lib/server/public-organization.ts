@@ -3,6 +3,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export interface PublicOrganization {
 	id: string;
 	slug: string;
+	allowedOrigins: string[];
+}
+
+interface PublicOrganizationRow {
+	id: string;
+	slug: string;
+	allowed_origins: string[] | null;
 }
 
 // organizations has no anon/authenticated-read policy at all (RLS is enabled
@@ -15,7 +22,7 @@ export async function getOrganizationBySlug(
 ): Promise<PublicOrganization | null> {
 	const { data, error } = await supabase
 		.from('organizations')
-		.select('id, slug')
+		.select('id, slug, allowed_origins')
 		.eq('slug', slug)
 		.maybeSingle();
 
@@ -23,5 +30,9 @@ export async function getOrganizationBySlug(
 		return null;
 	}
 
-	return data;
+	const row = data as PublicOrganizationRow;
+	// allowed_origins is nullable (Standards §12: fail-closed) — normalized
+	// to [] here so every caller checks membership the same way regardless
+	// of whether the column was ever set.
+	return { id: row.id, slug: row.slug, allowedOrigins: row.allowed_origins ?? [] };
 }
