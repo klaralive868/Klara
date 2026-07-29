@@ -2,6 +2,19 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { EMAIL_PATTERN } from '$lib/email';
 import type { CustomerSource } from '$lib/customers/types';
 import { PG_INTEGER_MAX } from '$lib/server/pg';
+import { checkRateLimit, rateLimitKey } from '$lib/server/rate-limit';
+
+const BOOKING_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
+
+// Shared by both the page action and the API endpoint (ADR-0008 / Standards
+// §12: rate-limiting is named explicitly as logic that must not be
+// duplicated between the two entry points) — lowercased email so casing
+// variants of the same address share one bucket, same reasoning as
+// findOrCreateCustomer's case-insensitive match.
+export function checkBookingRateLimit(ip: string, email: string): boolean {
+	const key = rateLimitKey('booking', ip, email.toLowerCase());
+	return checkRateLimit(key, BOOKING_RATE_LIMIT);
+}
 
 export interface ParsedBookingForm {
 	name: string;
@@ -12,15 +25,52 @@ export interface ParsedBookingForm {
 }
 
 export type ParseBookingFormResult =
-	| { ok: true; value: ParsedBookingForm }
-	| { ok: false; message: string };
+	{ ok: true; value: ParsedBookingForm } | { ok: false; message: string };
 
-export function parseBookingForm(formData: FormData): ParseBookingFormResult {
-	const name = String(formData.get('name') ?? '').trim();
-	const email = String(formData.get('email') ?? '').trim();
-	const phone = String(formData.get('phone') ?? '').trim();
-	const travelerCountRaw = String(formData.get('travelerCount') ?? '').trim();
-	const notes = String(formData.get('notes') ?? '').trim();
+// Coerces a field to a string the way FormData values naturally already are
+// (form submissions can never produce anything but a string or File here),
+// but the JSON API endpoint's body can contain arbitrary JSON — an array or
+// object value must be rejected rather than silently stringified: `String()`
+// on a single-element array drops the brackets entirely (bypassing e.g. the
+// email pattern check with `["a@b.com"]`), and on a plain object produces
+// the useless literal string "[object Object]" that would otherwise get
+// persisted as-is for an optional field.
+function toFieldString(value: unknown): string | null {
+	if (value === null || value === undefined) {
+		return '';
+	}
+	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+		return String(value);
+	}
+	return null;
+}
+
+// Takes a plain record rather than FormData so both the HTML-form page
+// action (via Object.fromEntries(formData)) and the JSON API endpoint (via
+// its parsed request body) can share this one validation implementation —
+// neither entry point re-derives its own copy of these rules (ADR-0008).
+export function parseBookingForm(fields: Record<string, unknown>): ParseBookingFormResult {
+	const nameField = toFieldString(fields.name);
+	const emailField = toFieldString(fields.email);
+	const phoneField = toFieldString(fields.phone);
+	const travelerCountField = toFieldString(fields.travelerCount);
+	const notesField = toFieldString(fields.notes);
+
+	if (
+		nameField === null ||
+		emailField === null ||
+		phoneField === null ||
+		travelerCountField === null ||
+		notesField === null
+	) {
+		return { ok: false, message: 'Invalid field value.' };
+	}
+
+	const name = nameField.trim();
+	const email = emailField.trim();
+	const phone = phoneField.trim();
+	const travelerCountRaw = travelerCountField.trim();
+	const notes = notesField.trim();
 
 	if (!name) {
 		return { ok: false, message: 'Enter your name.' };

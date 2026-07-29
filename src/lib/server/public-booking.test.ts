@@ -34,14 +34,6 @@ function fakeSupabase({
 	} as unknown as SupabaseClient;
 }
 
-function formData(fields: Record<string, string>): FormData {
-	const data = new FormData();
-	for (const [key, value] of Object.entries(fields)) {
-		data.set(key, value);
-	}
-	return data;
-}
-
 const VALID_FIELDS = {
 	name: 'Jane Traveler',
 	email: 'jane@example.com',
@@ -52,7 +44,7 @@ const VALID_FIELDS = {
 
 describe('parseBookingForm', () => {
 	it('parses valid input', () => {
-		const result = parseBookingForm(formData(VALID_FIELDS));
+		const result = parseBookingForm(VALID_FIELDS);
 		expect(result).toEqual({
 			ok: true,
 			value: {
@@ -66,34 +58,48 @@ describe('parseBookingForm', () => {
 	});
 
 	it('treats a blank phone and notes as null', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, phone: ' ', notes: ' ' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, phone: ' ', notes: ' ' });
 		expect(result.ok && result.value.phone).toBeNull();
 		expect(result.ok && result.value.notes).toBeNull();
 	});
 
 	it('rejects a blank name', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, name: '  ' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, name: '  ' });
 		expect(result).toEqual({ ok: false, message: 'Enter your name.' });
 	});
 
 	it('rejects a malformed email', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, email: 'not-an-email' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, email: 'not-an-email' });
 		expect(result).toEqual({ ok: false, message: 'Enter a valid email address.' });
 	});
 
 	it('rejects a non-numeric traveler count', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, travelerCount: 'two' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, travelerCount: 'two' });
 		expect(result).toEqual({ ok: false, message: 'Enter a valid traveler count.' });
 	});
 
 	it('rejects a zero traveler count', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, travelerCount: '0' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, travelerCount: '0' });
 		expect(result).toEqual({ ok: false, message: 'Traveler count must be at least 1.' });
 	});
 
 	it('rejects a traveler count beyond a PostgreSQL integer column', () => {
-		const result = parseBookingForm(formData({ ...VALID_FIELDS, travelerCount: '99999999999' }));
+		const result = parseBookingForm({ ...VALID_FIELDS, travelerCount: '99999999999' });
 		expect(result).toEqual({ ok: false, message: 'Traveler count is too large.' });
+	});
+
+	// FormData can never produce anything but a string here, but the JSON API
+	// endpoint's body can — a single-element array stringifies to its bare
+	// element (`String(['jane@example.com'])` === `'jane@example.com'`),
+	// which would otherwise sail straight through the email pattern check.
+	it('rejects an array field value instead of coercing it with String()', () => {
+		const result = parseBookingForm({ ...VALID_FIELDS, email: ['jane@example.com'] });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
+
+	it('rejects an object field value instead of persisting "[object Object]"', () => {
+		const result = parseBookingForm({ ...VALID_FIELDS, notes: { evil: true } });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
 	});
 });
 
@@ -162,7 +168,9 @@ describe('findOrCreateCustomer', () => {
 				}),
 				insert: (row: Record<string, unknown>) => {
 					insertedRow = row;
-					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+					return {
+						select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) })
+					};
 				}
 			})
 		} as unknown as SupabaseClient;
@@ -184,7 +192,9 @@ describe('findOrCreateCustomer', () => {
 				}),
 				insert: (row: Record<string, unknown>) => {
 					insertedRow = row;
-					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+					return {
+						select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) })
+					};
 				}
 			})
 		} as unknown as SupabaseClient;

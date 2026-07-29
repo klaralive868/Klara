@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseInquiryForm } from './public-inquiry';
 
-function formData(fields: Record<string, string>): FormData {
-	const data = new FormData();
-	for (const [key, value] of Object.entries(fields)) {
-		data.set(key, value);
-	}
-	return data;
-}
-
 const VALID_FIELDS = {
 	name: 'Jane Traveler',
 	email: 'jane@example.com',
@@ -22,7 +14,7 @@ const VALID_FIELDS = {
 
 describe('parseInquiryForm', () => {
 	it('parses valid input', () => {
-		const result = parseInquiryForm(formData(VALID_FIELDS));
+		const result = parseInquiryForm(VALID_FIELDS);
 		expect(result).toEqual({
 			ok: true,
 			value: {
@@ -39,16 +31,14 @@ describe('parseInquiryForm', () => {
 	});
 
 	it('treats blank optional fields as null', () => {
-		const result = parseInquiryForm(
-			formData({
-				...VALID_FIELDS,
-				phone: ' ',
-				preferredDates: ' ',
-				partySize: '',
-				budget: ' ',
-				notes: ' '
-			})
-		);
+		const result = parseInquiryForm({
+			...VALID_FIELDS,
+			phone: ' ',
+			preferredDates: ' ',
+			partySize: '',
+			budget: ' ',
+			notes: ' '
+		});
 		expect(result).toEqual({
 			ok: true,
 			value: {
@@ -65,32 +55,46 @@ describe('parseInquiryForm', () => {
 	});
 
 	it('rejects a blank name', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, name: '  ' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, name: '  ' });
 		expect(result).toEqual({ ok: false, message: 'Enter your name.' });
 	});
 
 	it('rejects a malformed email', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, email: 'not-an-email' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, email: 'not-an-email' });
 		expect(result).toEqual({ ok: false, message: 'Enter a valid email address.' });
 	});
 
 	it('rejects a blank trip description', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, tripDescription: '  ' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, tripDescription: '  ' });
 		expect(result).toEqual({ ok: false, message: 'Tell us where you would like to go.' });
 	});
 
 	it('rejects a non-numeric party size', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, partySize: 'four' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, partySize: 'four' });
 		expect(result).toEqual({ ok: false, message: 'Enter a valid party size.' });
 	});
 
 	it('rejects a zero party size', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, partySize: '0' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, partySize: '0' });
 		expect(result).toEqual({ ok: false, message: 'Party size must be at least 1.' });
 	});
 
 	it('rejects a party size beyond a PostgreSQL integer column', () => {
-		const result = parseInquiryForm(formData({ ...VALID_FIELDS, partySize: '99999999999' }));
+		const result = parseInquiryForm({ ...VALID_FIELDS, partySize: '99999999999' });
 		expect(result).toEqual({ ok: false, message: 'Party size is too large.' });
+	});
+
+	// Same reasoning as public-booking.test.ts: FormData can never produce
+	// anything but a string here, but the JSON API endpoint's body can — a
+	// single-element array would otherwise stringify to its bare element and
+	// bypass validation entirely.
+	it('rejects an array field value instead of coercing it with String()', () => {
+		const result = parseInquiryForm({ ...VALID_FIELDS, email: ['jane@example.com'] });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
+
+	it('rejects an object field value instead of persisting "[object Object]"', () => {
+		const result = parseInquiryForm({ ...VALID_FIELDS, notes: { evil: true } });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
 	});
 });

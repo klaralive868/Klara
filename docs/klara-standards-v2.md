@@ -113,3 +113,15 @@ Two distinct verification layers, stacked, not overlapping:
 ## 11. How this document is used
 
 This is a living constitution. Every new real bug or judgment call that gets resolved deliberately (not silently) gets added here — the same way the invite-link verification exception and the EMAIL_NOT_VERIFIED carve-out were documented rather than assumed. When a rule proves wrong, it's changed deliberately, with reasoning, not quietly ignored.
+
+---
+
+## 12. Public API surface for client-site integration
+
+> Decision of record: [ADR-0008](./adr/0008-public-api-surface-per-module.md). Simmo builds each client's real website as a separate project, not a Klara-hosted page — that site still needs to submit into Klara (a booking, an order, an inquiry) without becoming a Klara page itself. This section formalizes the resulting pattern so every module built after Bookings picks it up by default rather than re-deriving it.
+
+- **Every module needing external-site integration exposes a versioned REST endpoint** at `src/routes/api/v1/{module}/[orgSlug]/+server.ts` — GET for reads, POST for writes — **in addition to**, not instead of, any page-action-based public route Klara hosts itself for that module. The two are separate entry points into the same operation, not alternatives to choose between.
+- **CORS is never hardcoded per module or per client.** Every such endpoint resolves the organization from the URL slug, then checks the request's `Origin` header against that org's `organizations.allowed_origins` (text array — a client's site commonly needs more than one trusted origin at once, e.g. production + staging) and rejects anything not on the list. A hardcoded allowed-origin string is the same class of mistake §4 already forbids for application logic, applied to CORS specifically.
+- **Every public write endpoint follows the same security shape already established for Bookings' `/book/[orgSlug]` routes:** resolve the org from the URL slug (never a client-supplied org id), check origin, rate-limit, then write via the service-role client. The endpoint's own logic is the entire security boundary for that path.
+- **Shared logic is extracted into reusable server-side functions called from both entry points — never duplicated between the page action and the API endpoint.** Org resolution, customer find-or-create, and rate-limiting are the recurring examples; a fix applied to one entry point and not the other is the direct, foreseeable cost of skipping this.
+- **`allowed_origins` is fail-closed** — an unset or empty allowlist means every cross-origin request to that org's endpoints is rejected, never silently permitted.
