@@ -127,7 +127,6 @@ Bookings must genuinely serve two different scheduling paradigms present in the 
 - **One transactional email provider** — Resend, verified domain `klara.live`, sender `business@klara.live`. Sender address always read from an env var, never hardcoded; fails loudly if misconfigured.
 - **Image handling** — Supabase Storage (built in) is the default; revisit Cloudflare R2 only if a real cost/scale reason emerges.
 - **Deploy credentials are always scoped to least privilege** — a CI/build key gets only what a build needs (deploy + read env), never data or admin permissions — this is a general rule, not specific to any one platform.
-- **Every client-facing module gets a public API surface, not just Klara-hosted public pages** — a standing pattern (ADR-0008, Standards §12), not a Bookings-specific decision. Simmo builds each client's real website as its own separate project; that site still needs to write into Klara (a booking, an order, an inquiry) without becoming a Klara page. Every module needing external-site integration exposes a versioned `src/routes/api/v1/{module}/[orgSlug]/+server.ts` endpoint alongside any page-action route Klara hosts itself, gated by an org-scoped CORS allowlist (`organizations.allowed_origins`) rather than any hardcoded per-client origin.
 
 ---
 
