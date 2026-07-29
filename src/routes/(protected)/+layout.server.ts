@@ -18,18 +18,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		// guard is the actual enforcement point, this is display-only. Loaded
 		// here (not per-page) so every sidebar-shell page under (protected)
 		// gets it for free instead of re-querying it individually.
-		//
-		// Same story for enabledModules: RLS already scopes client_modules to
-		// the caller's own organization, so this is just "which of my org's
-		// rows exist," not an authorization check itself — each module's own
-		// +layout.server.ts is the actual enforcement point (Standards §2:
-		// display-only state never substitutes for a real server-side check).
-		const [operatorStatus, modulesResult] = await Promise.all([
-			isOperator(locals.supabase, user.id),
-			locals.supabase.from('client_modules').select('module')
-		]);
-		const enabledModules = (modulesResult.data ?? []).map((row) => row.module);
-		return { user, isOperator: operatorStatus, enabledModules };
+		return { user, isOperator: await isOperator(locals.supabase, user.id) };
 	}
 
 	// A pending member (mid invite-claim) is forced to set-password regardless

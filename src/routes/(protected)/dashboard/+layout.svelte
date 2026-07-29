@@ -10,12 +10,7 @@
 <Sidebar.Provider
 	style="--sidebar-width: calc(var(--spacing) * 72); --header-height: calc(var(--spacing) * 12);"
 >
-	<AppSidebar
-		variant="inset"
-		email={data.user?.email ?? ''}
-		isOperator={data.isOperator}
-		enabledModules={data.enabledModules ?? []}
-	/>
+	<AppSidebar variant="inset" email={data.user?.email ?? ''} isOperator={data.isOperator} />
 	<Sidebar.Inset>
 		{@render children()}
 	</Sidebar.Inset>

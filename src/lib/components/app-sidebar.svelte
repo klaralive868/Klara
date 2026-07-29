@@ -21,11 +21,8 @@
 	let {
 		email,
 		isOperator,
-		enabledModules,
 		...restProps
-	}: { email: string; isOperator: boolean; enabledModules: string[] } & ComponentProps<
-		typeof Sidebar.Root
-	> = $props();
+	}: { email: string; isOperator: boolean } & ComponentProps<typeof Sidebar.Root> = $props();
 
 	const dashboard = [
 		{
@@ -132,19 +129,11 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavDocuments items={dashboard} label="Dashboard" />
-		{#if enabledModules.includes('catalog')}
-			<NavDocuments items={catalog} label="Catalog" />
-		{/if}
+		<NavDocuments items={catalog} label="Catalog" />
 		<NavDocuments items={customers} label="Customers" />
-		{#if enabledModules.includes('resources')}
-			<NavDocuments items={resources} label="Resources" />
-		{/if}
-		{#if enabledModules.includes('bookings')}
-			<NavDocuments items={bookings} label="Bookings" />
-		{/if}
-		{#if enabledModules.includes('inquiries')}
-			<NavDocuments items={inquiries} label="Travel Inquiries" />
-		{/if}
+		<NavDocuments items={resources} label="Resources" />
+		<NavDocuments items={bookings} label="Bookings" />
+		<NavDocuments items={inquiries} label="Travel Inquiries" />
 		{#if navSecondary.length > 0}
 			<NavSecondary items={navSecondary} class="mt-auto" />
 		{/if}
