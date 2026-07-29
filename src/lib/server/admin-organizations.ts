@@ -144,6 +144,11 @@ export async function getOrganizationForAdmin(
 	};
 }
 
+// Throws rather than swallowing the error into an empty array: the caller
+// (the org detail page) seeds its module-toggle form from this result, and
+// an empty array is indistinguishable from "genuinely zero modules
+// assigned" — silently treating a failed read as "none" risks a save that
+// wipes out real module assignments the operator never actually unchecked.
 export async function getClientModulesForAdmin(
 	admin: SupabaseClient,
 	organizationId: string
@@ -154,7 +159,7 @@ export async function getClientModulesForAdmin(
 		.eq('organization_id', organizationId);
 	if (error) {
 		console.error('admin: failed to load client modules', organizationId, error);
-		return [];
+		throw error;
 	}
 	return (data ?? []) as ClientModuleAssignment[];
 }

@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { isOperator } from '$lib/server/operator';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getClientModulesForAdmin, getOrganizationForAdmin } from '$lib/server/admin-organizations';
-import { diffClientModules, parseModuleAssignmentForm } from '$lib/server/client-modules';
+import { parseModuleAssignmentForm } from '$lib/server/client-modules';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -21,7 +21,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, 'Organization not found');
 	}
 
-	const modules = await getClientModulesForAdmin(admin, params.id);
+	// getClientModulesForAdmin throws on a real query failure (as opposed to
+	// "zero modules") — surfaced here as a clean 500 rather than letting the
+	// page render as if the org had no modules, which the save action below
+	// would then take as license to delete real ones.
+	let modules;
+	try {
+		modules = await getClientModulesForAdmin(admin, params.id);
+	} catch {
+		error(500, "Could not load this organization's modules.");
+	}
 
 	return { organization, modules };
 };
@@ -40,45 +49,17 @@ export const actions: Actions = {
 		}
 
 		const admin = createSupabaseAdminClient();
-		const current = await getClientModulesForAdmin(admin, params.id);
-		const diff = diffClientModules(current, parsed.value);
-
-		if (diff.toInsert.length > 0) {
-			const { error: insertError } = await admin.from('client_modules').insert(
-				diff.toInsert.map((row) => ({
-					organization_id: params.id,
-					module: row.module,
-					tier: row.tier
-				}))
-			);
-			if (insertError) {
-				console.error('admin: failed to enable modules', params.id, insertError);
-				return fail(500, { message: 'Could not save module changes. Please try again.' });
-			}
-		}
-
-		for (const row of diff.toUpdate) {
-			const { error: updateError } = await admin
-				.from('client_modules')
-				.update({ tier: row.tier })
-				.eq('organization_id', params.id)
-				.eq('module', row.module);
-			if (updateError) {
-				console.error('admin: failed to update module tier', params.id, updateError);
-				return fail(500, { message: 'Could not save module changes. Please try again.' });
-			}
-		}
-
-		if (diff.toDelete.length > 0) {
-			const { error: deleteError } = await admin
-				.from('client_modules')
-				.delete()
-				.eq('organization_id', params.id)
-				.in('module', diff.toDelete);
-			if (deleteError) {
-				console.error('admin: failed to disable modules', params.id, deleteError);
-				return fail(500, { message: 'Could not save module changes. Please try again.' });
-			}
+		// sync_client_modules replaces the org's full module rowset in one
+		// transaction (delete-then-insert), so a mid-sequence failure can't
+		// leave only a prefix of the requested modules applied — same
+		// atomicity precedent as sync_catalog_item_stock.
+		const { error: syncError } = await admin.rpc('sync_client_modules', {
+			p_organization_id: params.id,
+			p_entries: parsed.value
+		});
+		if (syncError) {
+			console.error('admin: failed to sync modules', params.id, syncError);
+			return fail(500, { message: 'Could not save module changes. Please try again.' });
 		}
 
 		return { success: true, message: 'Modules updated.' };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffClientModules, parseModuleAssignmentForm } from './client-modules';
+import { parseModuleAssignmentForm } from './client-modules';
 
 function formData(fields: Record<string, string>): FormData {
 	const data = new FormData();
@@ -41,41 +41,5 @@ describe('parseModuleAssignmentForm', () => {
 			formData({ catalog: 'true', catalogTier: 'clothing' })
 		);
 		expect(result).toEqual({ ok: true, value: [{ module: 'catalog', tier: 'clothing' }] });
-	});
-});
-
-describe('diffClientModules', () => {
-	it('inserts a newly checked module', () => {
-		const diff = diffClientModules([], [{ module: 'bookings', tier: 'standard' }]);
-		expect(diff).toEqual({
-			toInsert: [{ module: 'bookings', tier: 'standard' }],
-			toUpdate: [],
-			toDelete: []
-		});
-	});
-
-	it('deletes an unchecked module', () => {
-		const diff = diffClientModules([{ module: 'bookings', tier: 'standard' }], []);
-		expect(diff).toEqual({ toInsert: [], toUpdate: [], toDelete: ['bookings'] });
-	});
-
-	it('updates tier when it changed', () => {
-		const diff = diffClientModules(
-			[{ module: 'catalog', tier: 'clothing' }],
-			[{ module: 'catalog', tier: 'electronics' }]
-		);
-		expect(diff).toEqual({
-			toInsert: [],
-			toUpdate: [{ module: 'catalog', tier: 'electronics' }],
-			toDelete: []
-		});
-	});
-
-	it('leaves an unchanged module alone', () => {
-		const diff = diffClientModules(
-			[{ module: 'catalog', tier: 'clothing' }],
-			[{ module: 'catalog', tier: 'clothing' }]
-		);
-		expect(diff).toEqual({ toInsert: [], toUpdate: [], toDelete: [] });
 	});
 });

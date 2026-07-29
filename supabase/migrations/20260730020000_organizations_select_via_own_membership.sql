@@ -13,14 +13,20 @@
 -- caller see the org behind ANY of their own membership rows (active or
 -- pending), not just the one current_organization_id() resolves to. A
 -- pending member still needs to see their (necessarily active, since it's
--- provisioned that way) org during claim — this doesn't loosen anything
--- current_organization_id()-gated policies already allow, it's additive
--- (RLS OR-combines matching policies), same as member_select_own_row was.
+-- provisioned that way) org during claim.
+--
+-- status = 'active' is still required here, even though membership
+-- existence alone would cover the pending-member case this policy exists
+-- for: without it, this policy would re-expose an archived org's full row
+-- to its own (still-active-membership) members — undoing the entire point
+-- of the deactivation gate (ADR-0009) for this one policy, since RLS
+-- OR-combines with organizations_select_own and a broader allow here wins.
 create policy organizations_select_via_own_membership
 	on public.organizations for select
 	to authenticated
 	using (
-		id in (
+		status = 'active'
+		and id in (
 			select organization_id
 			from public.organization_members
 			where user_id = auth.uid()
