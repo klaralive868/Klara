@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import type { AdminOrganizationRow } from '$lib/admin/types';
@@ -42,11 +43,16 @@
 			{#if organizations.length > 0}
 				{#each organizations as org (org.id)}
 					<Table.Row>
-						<Table.Cell class="font-medium">{org.name}</Table.Cell>
+						<Table.Cell class="font-medium">
+							<a href={resolve(`/admin/clients/${org.id}`)} class="hover:underline">{org.name}</a>
+						</Table.Cell>
 						<Table.Cell class="font-mono text-muted-foreground">{org.slug}</Table.Cell>
 						<Table.Cell>{org.ownerEmail ?? '—'}</Table.Cell>
-						<Table.Cell>
+						<Table.Cell class="space-x-1">
 							<Badge variant={statusVariant(org.status)}>{statusLabel(org.status)}</Badge>
+							{#if org.archived}
+								<Badge variant="destructive">Deactivated</Badge>
+							{/if}
 						</Table.Cell>
 						<Table.Cell>{formatDate(org.createdAt)}</Table.Cell>
 						<Table.Cell>{org.memberCount}</Table.Cell>

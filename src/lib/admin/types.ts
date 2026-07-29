@@ -14,4 +14,17 @@ export interface AdminOrganizationRow {
 	status: AdminOrganizationStatus;
 	createdAt: string;
 	memberCount: number;
+	// Whether the organization itself has been deactivated (organizations.status
+	// = 'archived') — orthogonal to `status` above, which describes the owner's
+	// own invite/claim progress, not the org's lifecycle state.
+	archived: boolean;
+}
+
+export interface AdminOrganizationDetail {
+	id: string;
+	name: string;
+	slug: string;
+	archived: boolean;
+	ownerEmail: string | null;
+	createdAt: string;
 }
