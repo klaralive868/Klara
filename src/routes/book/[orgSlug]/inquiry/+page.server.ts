@@ -2,13 +2,17 @@ import { error, fail } from '@sveltejs/kit';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getOrganizationBySlug } from '$lib/server/public-organization';
 import { findOrCreateCustomer } from '$lib/server/public-booking';
-import {
-	checkInquiryRateLimit,
-	createInquiry,
-	parseInquiryForm
-} from '$lib/server/public-inquiry';
+import { createInquiry, parseInquiryForm } from '$lib/server/public-inquiry';
+import { checkRateLimit, rateLimitKey } from '$lib/server/rate-limit';
 import type { Actions, PageServerLoad } from './$types';
 
+const INQUIRY_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
+// The per-email bucket alone is bypassable: the email is attacker-controlled
+// input, not an authenticated identity, so rotating it manufactures a fresh
+// allowance on every submission. This IP-only bucket (a higher ceiling, to
+// tolerate several genuine visitors behind one shared/NAT'd IP) caps total
+// writes regardless of how many emails one requester cycles through.
+const INQUIRY_IP_RATE_LIMIT = { limit: 20, windowMs: 15 * 60 * 1000 };
 const RATE_LIMITED_ERROR = 'Too many requests. Please try again later.';
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
@@ -29,12 +33,20 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const parsed = parseInquiryForm(Object.fromEntries(formData));
+		const parsed = parseInquiryForm(formData);
 		if (!parsed.ok) {
 			return fail(400, { message: parsed.message });
 		}
 
-		if (!checkInquiryRateLimit(getClientAddress(), parsed.value.email)) {
+		const ipKey = rateLimitKey('inquiry-ip', getClientAddress(), '');
+		if (!checkRateLimit(ipKey, INQUIRY_IP_RATE_LIMIT)) {
+			return fail(429, { message: RATE_LIMITED_ERROR });
+		}
+
+		// Lowercased so casing variants of the same address share one bucket —
+		// same reasoning as the booking flow's rate-limit key (#43 review).
+		const key = rateLimitKey('inquiry', getClientAddress(), parsed.value.email.toLowerCase());
+		if (!checkRateLimit(key, INQUIRY_RATE_LIMIT)) {
 			return fail(429, { message: RATE_LIMITED_ERROR });
 		}
 

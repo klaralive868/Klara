@@ -2,19 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { EMAIL_PATTERN } from '$lib/email';
 import type { CustomerSource } from '$lib/customers/types';
 import { PG_INTEGER_MAX } from '$lib/server/pg';
-import { checkRateLimit, rateLimitKey } from '$lib/server/rate-limit';
-
-const BOOKING_RATE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
-
-// Shared by both the page action and the API endpoint (ADR-0008 / Standards
-// §12: rate-limiting is named explicitly as logic that must not be
-// duplicated between the two entry points) — lowercased email so casing
-// variants of the same address share one bucket, same reasoning as
-// findOrCreateCustomer's case-insensitive match.
-export function checkBookingRateLimit(ip: string, email: string): boolean {
-	const key = rateLimitKey('booking', ip, email.toLowerCase());
-	return checkRateLimit(key, BOOKING_RATE_LIMIT);
-}
 
 export interface ParsedBookingForm {
 	name: string;
@@ -28,16 +15,12 @@ export type ParseBookingFormResult =
 	| { ok: true; value: ParsedBookingForm }
 	| { ok: false; message: string };
 
-// Takes a plain record rather than FormData so both the HTML-form page
-// action (via Object.fromEntries(formData)) and the JSON API endpoint (via
-// its parsed request body) can share this one validation implementation —
-// neither entry point re-derives its own copy of these rules (ADR-0008).
-export function parseBookingForm(fields: Record<string, unknown>): ParseBookingFormResult {
-	const name = String(fields.name ?? '').trim();
-	const email = String(fields.email ?? '').trim();
-	const phone = String(fields.phone ?? '').trim();
-	const travelerCountRaw = String(fields.travelerCount ?? '').trim();
-	const notes = String(fields.notes ?? '').trim();
+export function parseBookingForm(formData: FormData): ParseBookingFormResult {
+	const name = String(formData.get('name') ?? '').trim();
+	const email = String(formData.get('email') ?? '').trim();
+	const phone = String(formData.get('phone') ?? '').trim();
+	const travelerCountRaw = String(formData.get('travelerCount') ?? '').trim();
+	const notes = String(formData.get('notes') ?? '').trim();
 
 	if (!name) {
 		return { ok: false, message: 'Enter your name.' };

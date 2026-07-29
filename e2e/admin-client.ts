@@ -29,7 +29,3 @@ export const E2E_BOOKING_ORG_NAME = 'E2E Public Booking Org';
 export const E2E_BOOKING_ORG_SLUG = 'e2e-public-booking-org';
 export const E2E_BOOKING_PUBLISHED_RESOURCE_NAME = 'E2E Public Booking Published Package';
 export const E2E_BOOKING_DRAFT_RESOURCE_NAME = 'E2E Public Booking Draft Package';
-
-// public-api-bookings.spec.ts's allowlisted origin for E2E_BOOKING_ORG,
-// standing in for a client's real external site (ADR-0008 / Standards §12).
-export const E2E_BOOKING_ALLOWED_ORIGIN = 'https://client-site.example';

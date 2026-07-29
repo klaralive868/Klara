@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
 	createAdminClient,
-	E2E_BOOKING_ALLOWED_ORIGIN,
 	E2E_BOOKING_DRAFT_RESOURCE_NAME,
 	E2E_BOOKING_ORG_NAME,
 	E2E_BOOKING_ORG_SLUG,
@@ -235,17 +234,9 @@ export default async function globalSetup() {
 		);
 	}
 
-	// allowed_origins set here too (same origin as E2E_BOOKING_ORG's) so
-	// public-api-bookings.spec.ts's cross-org isolation check actually
-	// exercises org-scoped resource lookup, rather than getting a 403 from
-	// the CORS gate before it ever reaches that logic.
 	const { data: secondOrganization, error: secondOrgError } = await admin
 		.from('organizations')
-		.insert({
-			name: E2E_SECOND_ORG_NAME,
-			slug: E2E_SECOND_ORG_SLUG,
-			allowed_origins: [E2E_BOOKING_ALLOWED_ORIGIN]
-		})
+		.insert({ name: E2E_SECOND_ORG_NAME, slug: E2E_SECOND_ORG_SLUG })
 		.select()
 		.single();
 	if (secondOrgError || !secondOrganization) {
@@ -262,16 +253,9 @@ export default async function globalSetup() {
 	// public-booking.spec.ts has no dashboard session to create resources
 	// through the UI (it's exercising the unauthenticated public flow), so
 	// its published/draft resources are seeded directly here instead.
-	// allowed_origins seeded here too — public-api-bookings.spec.ts exercises
-	// the api/v1/bookings endpoints against this same org, cross-origin
-	// requests from E2E_BOOKING_ALLOWED_ORIGIN (ADR-0008 / Standards §12).
 	const { data: bookingOrganization, error: bookingOrgError } = await admin
 		.from('organizations')
-		.insert({
-			name: E2E_BOOKING_ORG_NAME,
-			slug: E2E_BOOKING_ORG_SLUG,
-			allowed_origins: [E2E_BOOKING_ALLOWED_ORIGIN]
-		})
+		.insert({ name: E2E_BOOKING_ORG_NAME, slug: E2E_BOOKING_ORG_SLUG })
 		.select()
 		.single();
 	if (bookingOrgError || !bookingOrganization) {
