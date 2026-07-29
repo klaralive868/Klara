@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { AdminOrganizationRow, AdminOrganizationStatus } from '$lib/admin/types';
+import type {
+	AdminOrganizationDetail,
+	AdminOrganizationRow,
+	AdminOrganizationStatus
+} from '$lib/admin/types';
+import type { ClientModuleAssignment } from './client-modules';
 
 // listUsers() is paginated (max 1000/page) — a single page: {perPage: 1000}
 // call silently drops any user past the 1000-user mark, which would render
@@ -38,7 +43,7 @@ export async function listOrganizationsForAdmin(
 	const [orgsResult, membersResult, emailById] = await Promise.all([
 		admin
 			.from('organizations')
-			.select('id, name, slug, created_at')
+			.select('id, name, slug, status, created_at')
 			.order('created_at', { ascending: false }),
 		admin.from('organization_members').select('organization_id, user_id, role, status'),
 		listAllUserEmailsById(admin)
@@ -84,7 +89,72 @@ export async function listOrganizationsForAdmin(
 			ownerEmail: owner ? (emailById.get(owner.user_id) ?? null) : null,
 			status,
 			createdAt: org.created_at,
-			memberCount: members.length
+			memberCount: members.length,
+			archived: org.status === 'archived'
 		};
 	});
+}
+
+// Same service-role requirement as listOrganizationsForAdmin above, and same
+// caller guarantee: only reachable after the (admin) layout guard has
+// already verified the caller is a genuine operator.
+export async function getOrganizationForAdmin(
+	admin: SupabaseClient,
+	organizationId: string
+): Promise<AdminOrganizationDetail | null> {
+	const { data: org, error: orgError } = await admin
+		.from('organizations')
+		.select('id, name, slug, status, created_at')
+		.eq('id', organizationId)
+		.maybeSingle();
+	if (orgError || !org) {
+		if (orgError) console.error('admin: failed to load organization', organizationId, orgError);
+		return null;
+	}
+
+	const { data: owner, error: ownerError } = await admin
+		.from('organization_members')
+		.select('user_id')
+		.eq('organization_id', organizationId)
+		.eq('role', 'owner')
+		.maybeSingle();
+	if (ownerError) {
+		console.error('admin: failed to load organization owner', organizationId, ownerError);
+	}
+
+	let ownerEmail: string | null = null;
+	if (owner) {
+		const { data: userResult, error: userError } = await admin.auth.admin.getUserById(
+			owner.user_id
+		);
+		if (userError) {
+			console.error('admin: failed to load owner email', owner.user_id, userError);
+		} else {
+			ownerEmail = userResult.user?.email ?? null;
+		}
+	}
+
+	return {
+		id: org.id,
+		name: org.name,
+		slug: org.slug,
+		archived: org.status === 'archived',
+		ownerEmail,
+		createdAt: org.created_at
+	};
+}
+
+export async function getClientModulesForAdmin(
+	admin: SupabaseClient,
+	organizationId: string
+): Promise<ClientModuleAssignment[]> {
+	const { data, error } = await admin
+		.from('client_modules')
+		.select('module, tier')
+		.eq('organization_id', organizationId);
+	if (error) {
+		console.error('admin: failed to load client modules', organizationId, error);
+		return [];
+	}
+	return (data ?? []) as ClientModuleAssignment[];
 }
