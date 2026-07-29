@@ -88,7 +88,9 @@ export async function resolvePublicApiRequest(event: RequestEvent): Promise<Publ
 // GET-only route falsely advertising POST as allowed is misleading, even
 // though nothing else here enforces it). Each route supplies its own
 // methods list and assigns the result as its `OPTIONS` export.
-export function createPreflightHandler(methods: string): (event: RequestEvent) => Promise<Response> {
+export function createPreflightHandler(
+	methods: string
+): (event: RequestEvent) => Promise<Response> {
 	return async (event) => {
 		const result = await resolvePublicApiRequest(event);
 		if (!result.ok) {
@@ -110,18 +112,31 @@ export function createPreflightHandler(methods: string): (event: RequestEvent) =
 }
 
 type JsonBodyResult =
-	| { ok: true; value: Record<string, unknown> }
-	| { ok: false; response: Response };
+	{ ok: true; value: Record<string, unknown> } | { ok: false; response: Response };
 
 // Shared by every write endpoint (ADR-0008 / Standards §12: no duplicated
 // logic between entry points applies within this API surface too, not just
 // against the page actions) — a malformed JSON body gets the same 400
 // response shape regardless of which endpoint received it.
 export async function parseJsonBody(event: RequestEvent, origin: string): Promise<JsonBodyResult> {
+	let value: unknown;
 	try {
-		const value = await event.request.json();
-		return { ok: true, value };
+		value = await event.request.json();
 	} catch {
 		return { ok: false, response: jsonError(400, 'Request body must be valid JSON.', { origin }) };
 	}
+
+	// request.json() succeeds on any valid JSON document, not just objects —
+	// `null`, `"a string"`, `42`, and `[1,2]` all parse without throwing. Each
+	// field parser downstream immediately indexes into the body as a record,
+	// so anything that isn't a plain object needs to be rejected here rather
+	// than reaching them as an uncaught TypeError.
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return {
+			ok: false,
+			response: jsonError(400, 'Request body must be a JSON object.', { origin })
+		};
+	}
+
+	return { ok: true, value: value as Record<string, unknown> };
 }
