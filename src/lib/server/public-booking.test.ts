@@ -87,6 +87,20 @@ describe('parseBookingForm', () => {
 		const result = parseBookingForm({ ...VALID_FIELDS, travelerCount: '99999999999' });
 		expect(result).toEqual({ ok: false, message: 'Traveler count is too large.' });
 	});
+
+	// FormData can never produce anything but a string here, but the JSON API
+	// endpoint's body can — a single-element array stringifies to its bare
+	// element (`String(['jane@example.com'])` === `'jane@example.com'`),
+	// which would otherwise sail straight through the email pattern check.
+	it('rejects an array field value instead of coercing it with String()', () => {
+		const result = parseBookingForm({ ...VALID_FIELDS, email: ['jane@example.com'] });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
+
+	it('rejects an object field value instead of persisting "[object Object]"', () => {
+		const result = parseBookingForm({ ...VALID_FIELDS, notes: { evil: true } });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
 });
 
 describe('findOrCreateCustomer', () => {
@@ -154,7 +168,9 @@ describe('findOrCreateCustomer', () => {
 				}),
 				insert: (row: Record<string, unknown>) => {
 					insertedRow = row;
-					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+					return {
+						select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) })
+					};
 				}
 			})
 		} as unknown as SupabaseClient;
@@ -176,7 +192,9 @@ describe('findOrCreateCustomer', () => {
 				}),
 				insert: (row: Record<string, unknown>) => {
 					insertedRow = row;
-					return { select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) }) };
+					return {
+						select: () => ({ single: async () => ({ data: { id: 'new-id' }, error: null }) })
+					};
 				}
 			})
 		} as unknown as SupabaseClient;

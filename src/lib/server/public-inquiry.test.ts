@@ -83,4 +83,18 @@ describe('parseInquiryForm', () => {
 		const result = parseInquiryForm({ ...VALID_FIELDS, partySize: '99999999999' });
 		expect(result).toEqual({ ok: false, message: 'Party size is too large.' });
 	});
+
+	// Same reasoning as public-booking.test.ts: FormData can never produce
+	// anything but a string here, but the JSON API endpoint's body can — a
+	// single-element array would otherwise stringify to its bare element and
+	// bypass validation entirely.
+	it('rejects an array field value instead of coercing it with String()', () => {
+		const result = parseInquiryForm({ ...VALID_FIELDS, email: ['jane@example.com'] });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
+
+	it('rejects an object field value instead of persisting "[object Object]"', () => {
+		const result = parseInquiryForm({ ...VALID_FIELDS, notes: { evil: true } });
+		expect(result).toEqual({ ok: false, message: 'Invalid field value.' });
+	});
 });

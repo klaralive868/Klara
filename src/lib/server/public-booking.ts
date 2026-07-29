@@ -25,19 +25,52 @@ export interface ParsedBookingForm {
 }
 
 export type ParseBookingFormResult =
-	| { ok: true; value: ParsedBookingForm }
-	| { ok: false; message: string };
+	{ ok: true; value: ParsedBookingForm } | { ok: false; message: string };
+
+// Coerces a field to a string the way FormData values naturally already are
+// (form submissions can never produce anything but a string or File here),
+// but the JSON API endpoint's body can contain arbitrary JSON — an array or
+// object value must be rejected rather than silently stringified: `String()`
+// on a single-element array drops the brackets entirely (bypassing e.g. the
+// email pattern check with `["a@b.com"]`), and on a plain object produces
+// the useless literal string "[object Object]" that would otherwise get
+// persisted as-is for an optional field.
+function toFieldString(value: unknown): string | null {
+	if (value === null || value === undefined) {
+		return '';
+	}
+	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+		return String(value);
+	}
+	return null;
+}
 
 // Takes a plain record rather than FormData so both the HTML-form page
 // action (via Object.fromEntries(formData)) and the JSON API endpoint (via
 // its parsed request body) can share this one validation implementation —
 // neither entry point re-derives its own copy of these rules (ADR-0008).
 export function parseBookingForm(fields: Record<string, unknown>): ParseBookingFormResult {
-	const name = String(fields.name ?? '').trim();
-	const email = String(fields.email ?? '').trim();
-	const phone = String(fields.phone ?? '').trim();
-	const travelerCountRaw = String(fields.travelerCount ?? '').trim();
-	const notes = String(fields.notes ?? '').trim();
+	const nameField = toFieldString(fields.name);
+	const emailField = toFieldString(fields.email);
+	const phoneField = toFieldString(fields.phone);
+	const travelerCountField = toFieldString(fields.travelerCount);
+	const notesField = toFieldString(fields.notes);
+
+	if (
+		nameField === null ||
+		emailField === null ||
+		phoneField === null ||
+		travelerCountField === null ||
+		notesField === null
+	) {
+		return { ok: false, message: 'Invalid field value.' };
+	}
+
+	const name = nameField.trim();
+	const email = emailField.trim();
+	const phone = phoneField.trim();
+	const travelerCountRaw = travelerCountField.trim();
+	const notes = notesField.trim();
 
 	if (!name) {
 		return { ok: false, message: 'Enter your name.' };

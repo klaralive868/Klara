@@ -36,21 +36,58 @@ export interface ParsedInquiryForm {
 }
 
 export type ParseInquiryFormResult =
-	| { ok: true; value: ParsedInquiryForm }
-	| { ok: false; message: string };
+	{ ok: true; value: ParsedInquiryForm } | { ok: false; message: string };
+
+// Same reasoning as public-booking.ts's toFieldString: form submissions can
+// only ever produce a string here, but the JSON API endpoint's body can
+// contain arbitrary JSON — an array or object value must be rejected rather
+// than silently stringified (a single-element array bypasses e.g. the email
+// pattern check, and a plain object would otherwise be persisted as the
+// useless literal "[object Object]").
+function toFieldString(value: unknown): string | null {
+	if (value === null || value === undefined) {
+		return '';
+	}
+	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+		return String(value);
+	}
+	return null;
+}
 
 // Takes a plain record rather than FormData — same reasoning as
 // parseBookingForm: one validation implementation shared by the page action
 // and the JSON API endpoint (ADR-0008).
 export function parseInquiryForm(fields: Record<string, unknown>): ParseInquiryFormResult {
-	const name = String(fields.name ?? '').trim();
-	const email = String(fields.email ?? '').trim();
-	const phone = String(fields.phone ?? '').trim();
-	const tripDescription = String(fields.tripDescription ?? '').trim();
-	const preferredDates = String(fields.preferredDates ?? '').trim();
-	const partySizeRaw = String(fields.partySize ?? '').trim();
-	const budget = String(fields.budget ?? '').trim();
-	const notes = String(fields.notes ?? '').trim();
+	const nameField = toFieldString(fields.name);
+	const emailField = toFieldString(fields.email);
+	const phoneField = toFieldString(fields.phone);
+	const tripDescriptionField = toFieldString(fields.tripDescription);
+	const preferredDatesField = toFieldString(fields.preferredDates);
+	const partySizeField = toFieldString(fields.partySize);
+	const budgetField = toFieldString(fields.budget);
+	const notesField = toFieldString(fields.notes);
+
+	if (
+		nameField === null ||
+		emailField === null ||
+		phoneField === null ||
+		tripDescriptionField === null ||
+		preferredDatesField === null ||
+		partySizeField === null ||
+		budgetField === null ||
+		notesField === null
+	) {
+		return { ok: false, message: 'Invalid field value.' };
+	}
+
+	const name = nameField.trim();
+	const email = emailField.trim();
+	const phone = phoneField.trim();
+	const tripDescription = tripDescriptionField.trim();
+	const preferredDates = preferredDatesField.trim();
+	const partySizeRaw = partySizeField.trim();
+	const budget = budgetField.trim();
+	const notes = notesField.trim();
 
 	if (!name) {
 		return { ok: false, message: 'Enter your name.' };
