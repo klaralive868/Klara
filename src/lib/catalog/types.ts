@@ -7,6 +7,7 @@ export interface CatalogItem {
 	priceCents: number;
 	materialType: string;
 	status: CatalogItemStatus;
+	unlimitedStock: boolean;
 }
 
 // Raw shape of a row as returned by Supabase (snake_case columns).
@@ -17,6 +18,7 @@ export interface CatalogItemRow {
 	price_cents: number;
 	material_type: string;
 	status: CatalogItemStatus;
+	unlimited_stock: boolean;
 }
 
 export function catalogItemFromRow(row: CatalogItemRow): CatalogItem {
@@ -26,7 +28,8 @@ export function catalogItemFromRow(row: CatalogItemRow): CatalogItem {
 		description: row.description,
 		priceCents: row.price_cents,
 		materialType: row.material_type,
-		status: row.status
+		status: row.status,
+		unlimitedStock: row.unlimited_stock
 	};
 }
 

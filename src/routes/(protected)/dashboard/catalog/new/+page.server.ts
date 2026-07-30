@@ -36,7 +36,8 @@ export const actions: Actions = {
 				name: parsed.value.name,
 				description: parsed.value.description,
 				price_cents: parsed.value.priceCents,
-				material_type: parsed.value.materialType
+				material_type: parsed.value.materialType,
+				unlimited_stock: parsed.value.unlimitedStock
 			})
 			.select('id')
 			.single();

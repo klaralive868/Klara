@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
@@ -51,7 +50,9 @@
 		columnId: string,
 		filterValue: Set<string>
 	) {
-		return !filterValue || filterValue.size === 0 || filterValue.has(row.getValue(columnId) as string);
+		return (
+			!filterValue || filterValue.size === 0 || filterValue.has(row.getValue(columnId) as string)
+		);
 	}
 
 	const columns: ColumnDef<CatalogItemListRow>[] = [
@@ -98,7 +99,8 @@
 			cell: ({ row }) =>
 				renderComponent(CatalogCellStock, {
 					stockBySize: row.original.stockBySize,
-					stockTotal: row.original.stockTotal
+					stockTotal: row.original.stockTotal,
+					unlimitedStock: row.original.unlimitedStock
 				})
 		},
 		{
@@ -142,9 +144,14 @@
 		getFilteredRowModel: getFilteredRowModel()
 	});
 
-	const selectedIds = $derived(table.getFilteredSelectedRowModel().rows.map((row) => row.original.id));
+	const selectedIds = $derived(
+		table.getFilteredSelectedRowModel().rows.map((row) => row.original.id)
+	);
 
-	const materialTypeOptions = MATERIAL_TYPES.map((type) => ({ value: type.key, label: type.label }));
+	const materialTypeOptions = MATERIAL_TYPES.map((type) => ({
+		value: type.key,
+		label: type.label
+	}));
 	const statusOptions: { value: CatalogItemStatus; label: string }[] = [
 		{ value: 'draft', label: 'Draft' },
 		{ value: 'published', label: 'Published' },

@@ -25,7 +25,8 @@ describe('parseCatalogItemForm', () => {
 				name: 'Home Jersey',
 				description: 'Mesh fabric',
 				priceCents: 6500,
-				materialType: 'jersey'
+				materialType: 'jersey',
+				unlimitedStock: false
 			}
 		});
 	});
@@ -42,6 +43,20 @@ describe('parseCatalogItemForm', () => {
 			formData({ name: '  ', price: '10', materialType: 'jersey' })
 		);
 		expect(result).toEqual({ ok: false, message: 'Enter a name for the item.' });
+	});
+
+	it('defaults unlimitedStock to false when the field is absent', () => {
+		const result = parseCatalogItemForm(
+			formData({ name: 'Item', price: '10', materialType: 'jersey' })
+		);
+		expect(result.ok && result.value.unlimitedStock).toBe(false);
+	});
+
+	it('parses unlimitedStock: true', () => {
+		const result = parseCatalogItemForm(
+			formData({ name: 'Item', price: '10', materialType: 'jersey', unlimitedStock: 'true' })
+		);
+		expect(result.ok && result.value.unlimitedStock).toBe(true);
 	});
 
 	it('rejects an unknown material type', () => {

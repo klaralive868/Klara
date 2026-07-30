@@ -10,7 +10,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	const { data, error } = await locals.supabase
 		.from('catalog_items')
-		.select('id, name, description, price_cents, material_type, status')
+		.select('id, name, description, price_cents, material_type, status, unlimited_stock')
 		.order('created_at', { ascending: false });
 
 	if (error) {
@@ -90,7 +90,9 @@ export const actions: Actions = {
 				.select('id');
 
 			if (updateError) {
-				return fail(500, { bulkMessage: 'Could not archive the selected items. Please try again.' });
+				return fail(500, {
+					bulkMessage: 'Could not archive the selected items. Please try again.'
+				});
 			}
 
 			return { bulkMessage: `${data?.length ?? 0} item(s) archived.` };

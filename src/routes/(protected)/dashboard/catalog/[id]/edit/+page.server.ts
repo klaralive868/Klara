@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const [itemResult, categoriesResult, tagsResult, stockResult, imagesResult] = await Promise.all([
 		locals.supabase
 			.from('catalog_items')
-			.select('id, name, description, price_cents, material_type, status')
+			.select('id, name, description, price_cents, material_type, status, unlimited_stock')
 			.eq('id', params.id)
 			.maybeSingle(),
 		locals.supabase
@@ -110,7 +110,8 @@ export const actions: Actions = {
 				name: parsed.value.name,
 				description: parsed.value.description,
 				price_cents: parsed.value.priceCents,
-				material_type: parsed.value.materialType
+				material_type: parsed.value.materialType,
+				unlimited_stock: parsed.value.unlimitedStock
 			})
 			.eq('id', params.id)
 			.select('id')

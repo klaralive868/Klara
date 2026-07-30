@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import {
+		Field,
+		FieldGroup,
+		FieldLabel,
+		FieldDescription,
+		FieldError
+	} from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import MaterialTypePicker from './MaterialTypePicker.svelte';
 	import StockSelector from './StockSelector.svelte';
@@ -39,6 +46,7 @@
 		untrack(() => ({ ...initialStockQuantities }))
 	);
 	let categoryIds = $state<string[]>(untrack(() => [...initialCategoryIds]));
+	let unlimitedStock = $state(untrack(() => initial?.unlimitedStock ?? false));
 
 	const selectedType = $derived(materialType ? getMaterialType(materialType) : undefined);
 
@@ -99,7 +107,19 @@
 	</FieldGroup>
 
 	<div class="space-y-6">
-		{#if selectedType}
+		<Field>
+			<input type="hidden" name="unlimitedStock" value={unlimitedStock} />
+			<div class="flex items-center gap-2">
+				<Checkbox id="unlimitedStock-{id}" bind:checked={unlimitedStock} />
+				<FieldLabel for="unlimitedStock-{id}">Unlimited stock</FieldLabel>
+			</div>
+			<FieldDescription>
+				Checkout is always accepted regardless of quantity — reconcile availability manually instead
+				of tracking it per size.
+			</FieldDescription>
+		</Field>
+
+		{#if selectedType && !unlimitedStock}
 			<div>
 				<p class="mb-2 text-sm font-medium">Stock</p>
 				<input type="hidden" name="stockQuantities" value={JSON.stringify(stockQuantities)} />

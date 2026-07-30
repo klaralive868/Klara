@@ -1,0 +1,18 @@
+-- ADR-0010: resolves the question ADR-0005 explicitly deferred ("should
+-- catalog images be public — decide when the storefront module actually
+-- needs it"). It does now: Netbreakerz's checkout flow needs persistent,
+-- directly-linkable image URLs for a real public storefront, the same
+-- concrete-consumer bar ADR-0007 used to make resource-images public.
+--
+-- A public bucket serves GET/download requests through Supabase Storage's
+-- public-object endpoint without evaluating storage.objects RLS at all
+-- (confirmed by resource-images' own migration comment) — no new anon
+-- storage policy is needed or able to narrow this further. The existing
+-- insert/delete policies (authenticated, own-org-path-scoped) are
+-- untouched; this only changes read access.
+--
+-- Same accepted looseness ADR-0007 flagged for resource-images: any
+-- uploaded catalog image becomes fetchable the moment it exists, regardless
+-- of its item's draft/published/archived status. Not new risk, just the
+-- same tradeoff applied here.
+update storage.buckets set public = true where id = 'catalog-images';

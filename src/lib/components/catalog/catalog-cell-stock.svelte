@@ -1,7 +1,12 @@
 <script lang="ts">
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 
-	let { stockBySize, stockTotal }: { stockBySize: Record<string, number>; stockTotal: number } =
+	let {
+		stockBySize,
+		stockTotal,
+		unlimitedStock
+	}: { stockBySize: Record<string, number>; stockTotal: number; unlimitedStock: boolean } =
 		$props();
 
 	const breakdown = $derived(
@@ -11,7 +16,9 @@
 	);
 </script>
 
-{#if breakdown.length === 0}
+{#if unlimitedStock}
+	<Badge variant="secondary">Unlimited</Badge>
+{:else if breakdown.length === 0}
 	<span class="text-muted-foreground">{stockTotal}</span>
 {:else}
 	<Tooltip.Root delayDuration={150}>

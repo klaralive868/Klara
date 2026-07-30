@@ -6,6 +6,7 @@ export interface ParsedCatalogItemForm {
 	description: string | null;
 	priceCents: number;
 	materialType: string;
+	unlimitedStock: boolean;
 }
 
 export type ParseCatalogItemFormResult =
@@ -16,6 +17,7 @@ export function parseCatalogItemForm(formData: FormData): ParseCatalogItemFormRe
 	const description = String(formData.get('description') ?? '').trim();
 	const priceRaw = String(formData.get('price') ?? '').trim();
 	const materialType = String(formData.get('materialType') ?? '').trim();
+	const unlimitedStock = String(formData.get('unlimitedStock') ?? '') === 'true';
 
 	if (!name) {
 		return { ok: false, message: 'Enter a name for the item.' };
@@ -36,7 +38,8 @@ export function parseCatalogItemForm(formData: FormData): ParseCatalogItemFormRe
 			name,
 			description: description || null,
 			priceCents,
-			materialType
+			materialType,
+			unlimitedStock
 		}
 	};
 }

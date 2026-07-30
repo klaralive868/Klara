@@ -8,6 +8,7 @@
 	import PackageIcon from '@tabler/icons-svelte/icons/package';
 	import PlusIcon from '@tabler/icons-svelte/icons/plus';
 	import ShieldIcon from '@tabler/icons-svelte/icons/shield';
+	import ShoppingCartIcon from '@tabler/icons-svelte/icons/shopping-cart';
 	import TagIcon from '@tabler/icons-svelte/icons/tag';
 	import UserPlusIcon from '@tabler/icons-svelte/icons/user-plus';
 	import UsersIcon from '@tabler/icons-svelte/icons/users';
@@ -64,6 +65,14 @@
 			name: 'New item',
 			url: resolve('/dashboard/catalog/new'),
 			icon: PlusIcon
+		}
+	];
+
+	const orders = [
+		{
+			name: 'All orders',
+			url: resolve('/dashboard/orders'),
+			icon: ShoppingCartIcon
 		}
 	];
 
@@ -145,6 +154,7 @@
 		{/if}
 		{#if enabledModules.includes('catalog')}
 			<NavDocuments items={catalog} label="Catalog" />
+			<NavDocuments items={orders} label="Orders" />
 		{/if}
 		{#if showOrgSections}
 			<NavDocuments items={customers} label="Customers" />

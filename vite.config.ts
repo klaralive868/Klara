@@ -39,7 +39,11 @@ export default defineConfig({
 	test: {
 		environment: 'node',
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		exclude: ['e2e/**'],
+		// Integration tests hit a real local Supabase Postgres instance (see
+		// vitest.integration.config.ts) — kept out of the default fake-client
+		// suite so `npm run test:unit` stays fast and hermetic, same as every
+		// other test in this repo today.
+		exclude: ['e2e/**', 'src/**/*.integration.test.ts'],
 		passWithNoTests: true
 	}
 });
