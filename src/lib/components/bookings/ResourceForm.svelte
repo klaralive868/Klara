@@ -11,6 +11,7 @@
 	} from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import ResourceImageUploader from './ResourceImageUploader.svelte';
+	import TagInput from '$lib/components/tag-input.svelte';
 	import type { Resource, ResourceImage, SeatCounts } from '$lib/bookings/types';
 
 	let {
@@ -45,6 +46,9 @@
 	// rejected for being "full"), not just an empty/zero number field.
 	let hasCapacity = $state(untrack(() => (initial?.quantity ?? null) !== null));
 	let quantity = $state(untrack(() => (initial?.quantity != null ? String(initial.quantity) : '')));
+
+	let category = $state(untrack(() => initial?.category ?? ''));
+	let region = $state(untrack(() => initial?.region ?? ''));
 </script>
 
 <form id={formId} method="POST" class="space-y-6">
@@ -92,7 +96,27 @@
 				required
 			/>
 		</Field>
+
+		<Field>
+			<FieldLabel for="category-{id}">Category</FieldLabel>
+			<Input id="category-{id}" name="category" bind:value={category} />
+		</Field>
+
+		<Field>
+			<FieldLabel for="region-{id}">Region</FieldLabel>
+			<Input id="region-{id}" name="region" bind:value={region} />
+		</Field>
 	</FieldGroup>
+
+	<Field>
+		<FieldLabel for="highlights-{id}">Highlights</FieldLabel>
+		<TagInput
+			id="highlights-{id}"
+			name="highlights"
+			initial={initial?.highlights ?? []}
+			placeholder="e.g. All-inclusive"
+		/>
+	</Field>
 
 	<Field>
 		<input type="hidden" name="hasCapacity" value={hasCapacity} />

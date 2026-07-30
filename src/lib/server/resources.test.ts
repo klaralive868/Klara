@@ -32,7 +32,10 @@ describe('parseResourceForm', () => {
 				returnDate: '2026-08-19',
 				priceCents: 199999,
 				quantity: null,
-				requiresManualConfirmation: true
+				requiresManualConfirmation: true,
+				category: null,
+				region: null,
+				highlights: null
 			}
 		});
 	});
@@ -131,5 +134,33 @@ describe('parseResourceForm', () => {
 		data.delete('requiresManualConfirmation');
 		const result = parseResourceForm(data);
 		expect(result.ok && result.value.requiresManualConfirmation).toBe(false);
+	});
+
+	it('treats blank category and region as null', () => {
+		const result = parseResourceForm(formData({ ...VALID_FIELDS, category: '  ', region: '  ' }));
+		expect(result.ok && result.value.category).toBeNull();
+		expect(result.ok && result.value.region).toBeNull();
+	});
+
+	it('trims category and region', () => {
+		const result = parseResourceForm(
+			formData({ ...VALID_FIELDS, category: ' Adventure ', region: ' Southeast Asia ' })
+		);
+		expect(result.ok && result.value.category).toBe('Adventure');
+		expect(result.ok && result.value.region).toBe('Southeast Asia');
+	});
+
+	it('is null when no highlights are given', () => {
+		const result = parseResourceForm(formData(VALID_FIELDS));
+		expect(result.ok && result.value.highlights).toBeNull();
+	});
+
+	it('collects multiple highlights entries sharing one field name, trimmed', () => {
+		const data = formData(VALID_FIELDS);
+		data.append('highlights', ' All-inclusive ');
+		data.append('highlights', 'Private pool');
+		data.append('highlights', '   ');
+		const result = parseResourceForm(data);
+		expect(result.ok && result.value.highlights).toEqual(['All-inclusive', 'Private pool']);
 	});
 });

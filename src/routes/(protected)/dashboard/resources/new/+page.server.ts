@@ -24,7 +24,10 @@ export const actions: Actions = {
 				return_date: parsed.value.returnDate,
 				price_cents: parsed.value.priceCents,
 				quantity: parsed.value.quantity,
-				requires_manual_confirmation: parsed.value.requiresManualConfirmation
+				requires_manual_confirmation: parsed.value.requiresManualConfirmation,
+				category: parsed.value.category,
+				region: parsed.value.region,
+				highlights: parsed.value.highlights
 			})
 			.select('id')
 			.single();

@@ -43,7 +43,10 @@ const RESOURCE_ROW = {
 	description: 'A week in Bali',
 	departure_date: '2026-08-12',
 	return_date: '2026-08-19',
-	price_cents: 189900
+	price_cents: 189900,
+	category: 'Adventure',
+	region: 'Southeast Asia',
+	highlights: ['All-inclusive', 'Private pool']
 };
 
 describe('listPublishedResources', () => {
@@ -78,6 +81,21 @@ describe('listPublishedResources', () => {
 		const supabase = fakeSupabase({ resources: { data: null, error: new Error('boom') } });
 		const result = await listPublishedResources(supabase, 'org-1');
 		expect(result).toEqual([]);
+	});
+
+	it('passes through category/region/highlights, and null (not omitted) when unset', async () => {
+		const bare = { ...RESOURCE_ROW, id: 'r2', category: null, region: null, highlights: null };
+		const supabase = fakeSupabase({
+			resources: { data: [RESOURCE_ROW, bare], error: null },
+			resource_images: { data: [], error: null }
+		});
+		const result = await listPublishedResources(supabase, 'org-1');
+		expect(result[0]).toMatchObject({
+			category: 'Adventure',
+			region: 'Southeast Asia',
+			highlights: ['All-inclusive', 'Private pool']
+		});
+		expect(result[1]).toMatchObject({ category: null, region: null, highlights: null });
 	});
 });
 
@@ -119,6 +137,9 @@ function toCamel(row: typeof RESOURCE_ROW) {
 		description: row.description,
 		departureDate: row.departure_date,
 		returnDate: row.return_date,
-		priceCents: row.price_cents
+		priceCents: row.price_cents,
+		category: row.category,
+		region: row.region,
+		highlights: row.highlights
 	};
 }

@@ -22,6 +22,9 @@ export interface PublicResource {
 	// display_order column; created_at is the only ordering signal).
 	// Always an array, never omitted/null, even when empty.
 	images: ResourceImage[];
+	category: string | null;
+	region: string | null;
+	highlights: string[] | null;
 }
 
 interface PublicResourceRow {
@@ -31,6 +34,9 @@ interface PublicResourceRow {
 	departure_date: string;
 	return_date: string;
 	price_cents: number;
+	category: string | null;
+	region: string | null;
+	highlights: string[] | null;
 }
 
 interface ResourceImageRow {
@@ -40,7 +46,8 @@ interface ResourceImageRow {
 	is_primary: boolean;
 }
 
-const PUBLIC_RESOURCE_COLUMNS = 'id, name, description, departure_date, return_date, price_cents';
+const PUBLIC_RESOURCE_COLUMNS =
+	'id, name, description, departure_date, return_date, price_cents, category, region, highlights';
 
 // resource_images itself is authenticated-only RLS (see its migration) —
 // `admin` (service-role, bypasses RLS) is required to read it here, same as
@@ -74,7 +81,10 @@ function toPublicResource(row: PublicResourceRow, images: ResourceImage[]): Publ
 		departureDate: row.departure_date,
 		returnDate: row.return_date,
 		priceCents: row.price_cents,
-		images: sortPrimaryFirst(images)
+		images: sortPrimaryFirst(images),
+		category: row.category,
+		region: row.region,
+		highlights: row.highlights
 	};
 }
 

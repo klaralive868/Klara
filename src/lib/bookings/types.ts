@@ -19,6 +19,9 @@ export interface Resource {
 	requiresManualConfirmation: boolean;
 	priceCents: number;
 	status: ResourceStatus;
+	category: string | null;
+	region: string | null;
+	highlights: string[] | null;
 }
 
 // Raw shape of a row as returned by Supabase (snake_case columns).
@@ -32,6 +35,9 @@ export interface ResourceRow {
 	requires_manual_confirmation: boolean;
 	price_cents: number;
 	status: ResourceStatus;
+	category: string | null;
+	region: string | null;
+	highlights: string[] | null;
 }
 
 export function resourceFromRow(row: ResourceRow): Resource {
@@ -44,7 +50,10 @@ export function resourceFromRow(row: ResourceRow): Resource {
 		quantity: row.quantity,
 		requiresManualConfirmation: row.requires_manual_confirmation,
 		priceCents: row.price_cents,
-		status: row.status
+		status: row.status,
+		category: row.category,
+		region: row.region,
+		highlights: row.highlights
 	};
 }
 

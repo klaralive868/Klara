@@ -9,6 +9,9 @@ export interface ParsedResourceForm {
 	priceCents: number;
 	quantity: number | null;
 	requiresManualConfirmation: boolean;
+	category: string | null;
+	region: string | null;
+	highlights: string[] | null;
 }
 
 export type ParseResourceFormResult =
@@ -42,6 +45,18 @@ export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 	const quantityRaw = String(formData.get('quantity') ?? '').trim();
 	const requiresManualConfirmation =
 		String(formData.get('requiresManualConfirmation') ?? '') === 'true';
+	const category = String(formData.get('category') ?? '').trim();
+	const region = String(formData.get('region') ?? '').trim();
+	// Same multiple-inputs-sharing-one-name convention as CategoryTagger's
+	// checkboxes — the tag input renders one hidden <input name="highlights">
+	// per chip, and getAll() collects them back into an array. Trimmed and
+	// emptied-out entries dropped; an all-empty result normalizes to null,
+	// same as every other optional array field elsewhere in this app
+	// (public-inquiry.ts's travelStyle).
+	const highlights = formData
+		.getAll('highlights')
+		.map((value) => String(value).trim())
+		.filter((value) => value.length > 0);
 
 	if (!name) {
 		return { ok: false, message: 'Enter a name for the resource.' };
@@ -92,7 +107,10 @@ export function parseResourceForm(formData: FormData): ParseResourceFormResult {
 			returnDate,
 			priceCents,
 			quantity,
-			requiresManualConfirmation
+			requiresManualConfirmation,
+			category: category || null,
+			region: region || null,
+			highlights: highlights.length > 0 ? highlights : null
 		}
 	};
 }

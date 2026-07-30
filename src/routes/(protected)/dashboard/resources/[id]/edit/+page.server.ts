@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		locals.supabase
 			.from('resources')
 			.select(
-				'id, name, description, departure_date, return_date, quantity, requires_manual_confirmation, price_cents, status'
+				'id, name, description, departure_date, return_date, quantity, requires_manual_confirmation, price_cents, status, category, region, highlights'
 			)
 			.eq('id', params.id)
 			.maybeSingle(),
@@ -59,8 +59,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		images = ((imagesResult.data ?? []) as ResourceImageRow[]).map((row) => ({
 			id: row.id,
 			isPrimary: row.is_primary,
-			url: locals.supabase.storage.from(IMAGE_BUCKET).getPublicUrl(row.storage_path).data
-				.publicUrl
+			url: locals.supabase.storage.from(IMAGE_BUCKET).getPublicUrl(row.storage_path).data.publicUrl
 		}));
 	}
 
@@ -84,7 +83,10 @@ export const actions: Actions = {
 				return_date: parsed.value.returnDate,
 				price_cents: parsed.value.priceCents,
 				quantity: parsed.value.quantity,
-				requires_manual_confirmation: parsed.value.requiresManualConfirmation
+				requires_manual_confirmation: parsed.value.requiresManualConfirmation,
+				category: parsed.value.category,
+				region: parsed.value.region,
+				highlights: parsed.value.highlights
 			})
 			.eq('id', params.id)
 			.select('id')
