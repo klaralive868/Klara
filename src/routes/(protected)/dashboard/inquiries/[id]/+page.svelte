@@ -28,7 +28,10 @@
 		<dl class="space-y-3 text-sm">
 			<div>
 				<dt class="text-muted-foreground">Customer</dt>
-				<dd>{data.inquiry.customerName} · {data.inquiry.customerEmail ?? 'no email'}</dd>
+				<dd>
+					{data.inquiry.customerName} · {data.inquiry.customerEmail ?? 'no email'} · {data.inquiry
+						.customerPhone ?? 'no phone'}
+				</dd>
 			</div>
 			<div>
 				<dt class="text-muted-foreground">Trip description</dt>

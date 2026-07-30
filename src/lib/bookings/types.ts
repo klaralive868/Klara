@@ -132,6 +132,7 @@ export interface TravelInquiry {
 	customerId: string;
 	customerName: string;
 	customerEmail: string | null;
+	customerPhone: string | null;
 	tripDescription: string;
 	preferredDates: string | null;
 	partySize: number | null;
@@ -150,7 +151,7 @@ export interface TravelInquiry {
 // customer join is baked into the one select string every query uses — same
 // reasoning as BOOKING_SELECT above.
 export const TRAVEL_INQUIRY_SELECT =
-	'id, customer_id, trip_description, preferred_dates, party_size, budget, notes, status, adult_count, child_count, destination, travel_style, include_flights, dates_flexible, customers(full_name, email)';
+	'id, customer_id, trip_description, preferred_dates, party_size, budget, notes, status, adult_count, child_count, destination, travel_style, include_flights, dates_flexible, customers(full_name, email, phone)';
 
 export interface TravelInquiryRow {
 	id: string;
@@ -167,7 +168,7 @@ export interface TravelInquiryRow {
 	travel_style: string[] | null;
 	include_flights: boolean;
 	dates_flexible: boolean;
-	customers: { full_name: string; email: string | null } | null;
+	customers: { full_name: string; email: string | null; phone: string | null } | null;
 }
 
 export function travelInquiryFromRow(row: TravelInquiryRow): TravelInquiry {
@@ -176,6 +177,7 @@ export function travelInquiryFromRow(row: TravelInquiryRow): TravelInquiry {
 		customerId: row.customer_id,
 		customerName: row.customers?.full_name ?? 'Unknown customer',
 		customerEmail: row.customers?.email ?? null,
+		customerPhone: row.customers?.phone ?? null,
 		tripDescription: row.trip_description,
 		preferredDates: row.preferred_dates,
 		partySize: row.party_size,

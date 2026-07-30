@@ -25,6 +25,9 @@
 					>
 						{inquiry.customerName}
 					</a>
+					<p class="text-xs text-muted-foreground">
+						{inquiry.customerEmail ?? 'no email'} · {inquiry.customerPhone ?? 'no phone'}
+					</p>
 					<p class="text-sm text-muted-foreground">{inquiry.tripDescription}</p>
 					<p class="text-xs text-muted-foreground">
 						{inquiry.destination ?? 'Destination open'} · {inquiry.adultCount} adult{inquiry.adultCount ===
