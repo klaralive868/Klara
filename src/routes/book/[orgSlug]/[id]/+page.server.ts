@@ -2,8 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getOrganizationBySlug } from '$lib/server/public-organization';
-import { getPublishedResource } from '$lib/server/public-resources';
-import type { PublicResource } from '$lib/bookings/placeholder-resources';
+import { getPublishedResource, type PublicResource } from '$lib/server/public-resources';
 import {
 	checkBookingRateLimit,
 	createBooking,

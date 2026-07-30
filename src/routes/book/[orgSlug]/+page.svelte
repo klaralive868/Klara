@@ -21,9 +21,19 @@
 				href={resolve(`/book/${page.params.orgSlug}/${resource.id}`)}
 				class="block rounded-lg border border-border p-4 transition-colors hover:border-foreground/30"
 			>
-				<div class="mb-3 flex h-32 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
-					{resource.imageCount} photo{resource.imageCount === 1 ? '' : 's'}
-				</div>
+				{#if resource.images[0]}
+					<img
+						src={resource.images[0].url}
+						alt={resource.name}
+						class="mb-3 h-32 w-full rounded-md object-cover"
+					/>
+				{:else}
+					<div
+						class="mb-3 flex h-32 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground"
+					>
+						No photo
+					</div>
+				{/if}
 				<h2 class="font-medium">{resource.name}</h2>
 				<p class="text-sm text-muted-foreground">
 					{formatDateRange(resource.departureDate, resource.returnDate)}

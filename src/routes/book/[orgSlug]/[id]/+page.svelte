@@ -19,13 +19,13 @@
 </svelte:head>
 
 <main class="mx-auto max-w-3xl px-4 py-12">
-	<div class="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-		{#each Array.from({ length: data.resource.imageCount }, (_, index) => index) as photoIndex (photoIndex)}
-			<div class="flex h-32 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
-				Photo {photoIndex + 1}
-			</div>
-		{/each}
-	</div>
+	{#if data.resource.images.length > 0}
+		<div class="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
+			{#each data.resource.images as image (image.id)}
+				<img src={image.url} alt={data.resource.name} class="h-32 w-full rounded-md object-cover" />
+			{/each}
+		</div>
+	{/if}
 
 	<h1 class="text-2xl font-semibold">{data.resource.name}</h1>
 	<p class="mt-1 text-muted-foreground">
