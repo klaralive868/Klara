@@ -6,11 +6,7 @@ import {
 	createPreflightHandler
 } from '$lib/server/public-api';
 import { findOrCreateCustomer } from '$lib/server/public-booking';
-import {
-	checkInquiryRateLimit,
-	createInquiry,
-	parseInquiryForm
-} from '$lib/server/public-inquiry';
+import { checkInquiryRateLimit, createInquiry, parseInquiryForm } from '$lib/server/public-inquiry';
 import type { RequestHandler } from './$types';
 
 const RATE_LIMITED_ERROR = 'Too many requests. Please try again later.';
@@ -61,7 +57,13 @@ export const POST: RequestHandler = async (event) => {
 		preferredDates: parsed.value.preferredDates,
 		partySize: parsed.value.partySize,
 		budget: parsed.value.budget,
-		notes: parsed.value.notes
+		notes: parsed.value.notes,
+		adultCount: parsed.value.adultCount,
+		childCount: parsed.value.childCount,
+		destination: parsed.value.destination,
+		travelStyle: parsed.value.travelStyle,
+		includeFlights: parsed.value.includeFlights,
+		datesFlexible: parsed.value.datesFlexible
 	});
 	if (!created) {
 		return jsonError(500, GENERIC_ERROR, { origin });

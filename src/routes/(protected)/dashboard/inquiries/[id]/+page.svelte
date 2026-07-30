@@ -35,12 +35,50 @@
 				<dd>{data.inquiry.tripDescription}</dd>
 			</div>
 			<div>
+				<dt class="text-muted-foreground">Destination</dt>
+				<dd>{data.inquiry.destination || '—'}</dd>
+			</div>
+			<div>
 				<dt class="text-muted-foreground">Preferred dates</dt>
-				<dd>{data.inquiry.preferredDates || '—'}</dd>
+				<dd>
+					{data.inquiry.preferredDates || '—'}
+					{#if data.inquiry.datesFlexible}
+						<span class="text-muted-foreground">(flexible)</span>
+					{/if}
+				</dd>
+			</div>
+			<div>
+				<dt class="text-muted-foreground">Travelers</dt>
+				<dd>
+					{data.inquiry.adultCount} adult{data.inquiry.adultCount === 1
+						? ''
+						: 's'}{#if data.inquiry.childCount > 0}, {data.inquiry.childCount} child{data.inquiry
+							.childCount === 1
+							? ''
+							: 'ren'}{/if}
+				</dd>
 			</div>
 			<div>
 				<dt class="text-muted-foreground">Party size</dt>
 				<dd>{data.inquiry.partySize ?? '—'}</dd>
+			</div>
+			<div>
+				<dt class="text-muted-foreground">Travel style</dt>
+				<dd>
+					{#if data.inquiry.travelStyle && data.inquiry.travelStyle.length > 0}
+						<div class="flex flex-wrap gap-1">
+							{#each data.inquiry.travelStyle as tag (tag)}
+								<Badge variant="outline">{tag}</Badge>
+							{/each}
+						</div>
+					{:else}
+						—
+					{/if}
+				</dd>
+			</div>
+			<div>
+				<dt class="text-muted-foreground">Flights</dt>
+				<dd>{data.inquiry.includeFlights ? 'Included' : 'Not included'}</dd>
 			</div>
 			<div>
 				<dt class="text-muted-foreground">Budget</dt>

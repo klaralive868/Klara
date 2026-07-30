@@ -129,13 +129,19 @@ export interface TravelInquiry {
 	budget: string | null;
 	notes: string | null;
 	status: TravelInquiryStatus;
+	adultCount: number;
+	childCount: number;
+	destination: string | null;
+	travelStyle: string[] | null;
+	includeFlights: boolean;
+	datesFlexible: boolean;
 }
 
 // A travel inquiry is never displayed without knowing who it's for, so the
 // customer join is baked into the one select string every query uses — same
 // reasoning as BOOKING_SELECT above.
 export const TRAVEL_INQUIRY_SELECT =
-	'id, customer_id, trip_description, preferred_dates, party_size, budget, notes, status, customers(full_name, email)';
+	'id, customer_id, trip_description, preferred_dates, party_size, budget, notes, status, adult_count, child_count, destination, travel_style, include_flights, dates_flexible, customers(full_name, email)';
 
 export interface TravelInquiryRow {
 	id: string;
@@ -146,6 +152,12 @@ export interface TravelInquiryRow {
 	budget: string | null;
 	notes: string | null;
 	status: TravelInquiryStatus;
+	adult_count: number;
+	child_count: number;
+	destination: string | null;
+	travel_style: string[] | null;
+	include_flights: boolean;
+	dates_flexible: boolean;
 	customers: { full_name: string; email: string | null } | null;
 }
 
@@ -160,7 +172,13 @@ export function travelInquiryFromRow(row: TravelInquiryRow): TravelInquiry {
 		partySize: row.party_size,
 		budget: row.budget,
 		notes: row.notes,
-		status: row.status
+		status: row.status,
+		adultCount: row.adult_count,
+		childCount: row.child_count,
+		destination: row.destination,
+		travelStyle: row.travel_style,
+		includeFlights: row.include_flights,
+		datesFlexible: row.dates_flexible
 	};
 }
 

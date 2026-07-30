@@ -26,6 +26,24 @@
 						{inquiry.customerName}
 					</a>
 					<p class="text-sm text-muted-foreground">{inquiry.tripDescription}</p>
+					<p class="text-xs text-muted-foreground">
+						{inquiry.destination ?? 'Destination open'} · {inquiry.adultCount} adult{inquiry.adultCount ===
+						1
+							? ''
+							: 's'}{#if inquiry.childCount > 0}, {inquiry.childCount} child{inquiry.childCount ===
+							1
+								? ''
+								: 'ren'}{/if}{#if inquiry.includeFlights}
+							· Flights included
+						{/if}
+					</p>
+					{#if inquiry.travelStyle && inquiry.travelStyle.length > 0}
+						<div class="mt-1 flex flex-wrap gap-1">
+							{#each inquiry.travelStyle as tag (tag)}
+								<Badge variant="outline">{tag}</Badge>
+							{/each}
+						</div>
+					{/if}
 				</div>
 				<Badge variant={travelInquiryStatusVariant(inquiry.status)}>{inquiry.status}</Badge>
 			</li>

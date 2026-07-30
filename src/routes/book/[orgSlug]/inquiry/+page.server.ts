@@ -2,11 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getOrganizationBySlug } from '$lib/server/public-organization';
 import { findOrCreateCustomer } from '$lib/server/public-booking';
-import {
-	checkInquiryRateLimit,
-	createInquiry,
-	parseInquiryForm
-} from '$lib/server/public-inquiry';
+import { checkInquiryRateLimit, createInquiry, parseInquiryForm } from '$lib/server/public-inquiry';
 import type { Actions, PageServerLoad } from './$types';
 
 const RATE_LIMITED_ERROR = 'Too many requests. Please try again later.';
@@ -61,7 +57,13 @@ export const actions: Actions = {
 			preferredDates: parsed.value.preferredDates,
 			partySize: parsed.value.partySize,
 			budget: parsed.value.budget,
-			notes: parsed.value.notes
+			notes: parsed.value.notes,
+			adultCount: parsed.value.adultCount,
+			childCount: parsed.value.childCount,
+			destination: parsed.value.destination,
+			travelStyle: parsed.value.travelStyle,
+			includeFlights: parsed.value.includeFlights,
+			datesFlexible: parsed.value.datesFlexible
 		});
 		if (!created) {
 			return fail(500, { message: GENERIC_ERROR });

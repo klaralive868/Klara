@@ -66,8 +66,7 @@
 						rows="3"
 						placeholder="Destination, type of trip, anything else that helps us plan."
 						class="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
-						required
-					></textarea>
+						required></textarea>
 				</Field>
 
 				<Field>
@@ -76,6 +75,20 @@
 						id="preferredDates-{id}"
 						name="preferredDates"
 						placeholder="e.g. Sometime in September 2026, 10-12 days"
+					/>
+				</Field>
+
+				<Field>
+					<FieldLabel for="adultCount-{id}">Number of adults</FieldLabel>
+					<Input
+						id="adultCount-{id}"
+						name="adultCount"
+						type="number"
+						min="1"
+						step="1"
+						value="1"
+						class="max-w-32"
+						required
 					/>
 				</Field>
 
