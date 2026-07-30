@@ -22,10 +22,19 @@
 		email,
 		isOperator,
 		enabledModules,
+		showOrgSections = true,
 		...restProps
-	}: { email: string; isOperator: boolean; enabledModules: string[] } & ComponentProps<
-		typeof Sidebar.Root
-	> = $props();
+	}: {
+		email: string;
+		isOperator: boolean;
+		enabledModules: string[];
+		// The (admin) area has no organization context to speak of — an
+		// operator isn't ordinarily a member of any client org (ADR-0003) — so
+		// "Dashboard" and "Customers" (org-scoped, unconditional otherwise)
+		// would link to routes that just bounce them back out. False for that
+		// shell; true (default) everywhere else, unchanged.
+		showOrgSections?: boolean;
+	} & ComponentProps<typeof Sidebar.Root> = $props();
 
 	const dashboard = [
 		{
@@ -131,11 +140,15 @@
 		</Sidebar.Menu>
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavDocuments items={dashboard} label="Dashboard" />
+		{#if showOrgSections}
+			<NavDocuments items={dashboard} label="Dashboard" />
+		{/if}
 		{#if enabledModules.includes('catalog')}
 			<NavDocuments items={catalog} label="Catalog" />
 		{/if}
-		<NavDocuments items={customers} label="Customers" />
+		{#if showOrgSections}
+			<NavDocuments items={customers} label="Customers" />
+		{/if}
 		{#if enabledModules.includes('resources')}
 			<NavDocuments items={resources} label="Resources" />
 		{/if}

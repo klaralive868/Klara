@@ -1,6 +1,13 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/site-header.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from '$lib/components/ui/field/index.js';
+	import {
+		Field,
+		FieldGroup,
+		FieldLabel,
+		FieldError,
+		FieldDescription
+	} from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { slugify } from '$lib/slug';
 	import type { ActionData } from './$types';
@@ -23,10 +30,9 @@
 	});
 </script>
 
-<main class="mx-auto mt-16 max-w-lg px-4">
-	<h1 class="mb-6 text-xl font-semibold">Create client</h1>
-
-	<form method="POST" class="space-y-6">
+<SiteHeader title="Create client" />
+<div class="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+	<form method="POST" class="max-w-lg space-y-6">
 		<FieldGroup>
 			<Field>
 				<FieldLabel for="businessName-{id}">Business name</FieldLabel>
@@ -64,4 +70,4 @@
 			<Button type="submit">Create client</Button>
 		</Field>
 	</form>
-</main>
+</div>
