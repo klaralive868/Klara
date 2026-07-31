@@ -1,4 +1,19 @@
-export type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'out_for_delivery' | 'cancelled';
+
+// Forward-only workflow an agent walks an order through from the dashboard.
+// 'cancelled' is reachable from 'pending' or 'confirmed' but not offered as
+// a "next" step here — it's a separate action, not a step in the happy path.
+export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+	pending: ['confirmed', 'cancelled'],
+	confirmed: ['out_for_delivery', 'cancelled'],
+	out_for_delivery: [],
+	cancelled: []
+};
+
+export function orderStatusLabel(status: OrderStatus): string {
+	if (status === 'out_for_delivery') return 'Out for delivery';
+	return status[0].toUpperCase() + status.slice(1);
+}
 
 export interface OrderLine {
 	itemId: string;
@@ -66,7 +81,7 @@ export function orderFromRow(row: OrderRow): Order {
 
 export function orderStatusVariant(status: OrderStatus) {
 	if (status === 'confirmed') return 'default';
-	if (status === 'fulfilled') return 'secondary';
+	if (status === 'out_for_delivery') return 'secondary';
 	if (status === 'cancelled') return 'destructive';
 	return 'outline';
 }
