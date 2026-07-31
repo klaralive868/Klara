@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { getActiveOrganizationId } from '$lib/server/organization';
 import { listOrganizationMembers } from '$lib/server/team';
 import { inviteOrganizationMember } from '$lib/server/invite';
+import { SITE_URL } from '$lib/server/site-url';
 import type { Actions, PageServerLoad } from './$types';
 
 const INVITABLE_ROLES = ['owner', 'manager', 'staff'] as const;
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	invite: async ({ request, locals, url }) => {
+	invite: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) {
 			throw redirect(303, '/sign-in');
@@ -95,7 +96,7 @@ export const actions: Actions = {
 			email,
 			organizationId: inviterMembership.organization_id,
 			role,
-			redirectTo: `${url.origin}/auth/confirm`
+			redirectTo: `${SITE_URL}/auth/confirm`
 		});
 		if (!result.ok) {
 			return fail(result.kind === 'server' ? 500 : 400, { inviteMessage: result.message });

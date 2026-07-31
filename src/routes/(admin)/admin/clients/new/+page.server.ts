@@ -3,10 +3,11 @@ import { isOperator } from '$lib/server/operator';
 import { createSupabaseAdminClient } from '$lib/server/supabase-admin';
 import { parseCreateClientForm } from '$lib/server/admin-provisioning';
 import { inviteOrganizationMember } from '$lib/server/invite';
+import { SITE_URL } from '$lib/server/site-url';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	default: async ({ request, locals, url }) => {
+	default: async ({ request, locals }) => {
 		// The (admin) layout guard already checked this, but that guard runs in
 		// load() only — SvelteKit form actions do not go through the parent
 		// layout's load(), so a POST straight to this action would otherwise
@@ -45,7 +46,7 @@ export const actions: Actions = {
 			email: parsed.value.ownerEmail,
 			organizationId: org.id,
 			role: 'owner',
-			redirectTo: `${url.origin}/auth/confirm`,
+			redirectTo: `${SITE_URL}/auth/confirm`,
 			metadata: { full_name: parsed.value.ownerFullName }
 		});
 
