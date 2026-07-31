@@ -1,7 +1,6 @@
 <script lang="ts">
 	import AddressBookIcon from '@tabler/icons-svelte/icons/address-book';
 	import CalendarEventIcon from '@tabler/icons-svelte/icons/calendar-event';
-	import DashboardIcon from '@tabler/icons-svelte/icons/dashboard';
 	import InnerShadowTopIcon from '@tabler/icons-svelte/icons/inner-shadow-top';
 	import ListIcon from '@tabler/icons-svelte/icons/list';
 	import MessageCircleQuestionIcon from '@tabler/icons-svelte/icons/message-circle-question';
@@ -38,11 +37,6 @@
 	} & ComponentProps<typeof Sidebar.Root> = $props();
 
 	const dashboard = [
-		{
-			name: 'Overview',
-			url: resolve('/dashboard'),
-			icon: DashboardIcon
-		},
 		{
 			name: 'Team',
 			url: resolve('/dashboard/team'),
