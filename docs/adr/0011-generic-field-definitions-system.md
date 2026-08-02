@@ -1,0 +1,36 @@
+# ADR-0011: One generic `field_definitions` system replaces Customers' bespoke `customer_field_definitions`, and covers Orders next
+
+- Status: Accepted
+- Date: 2026-08-02
+
+## Context
+
+Customers has a working flexible-fields pattern — `customer_field_definitions` (per-organization registry: `field_key`/`label`/`field_type`/`options`/`required`/`display_order`) plus a `customers.custom_fields` jsonb bag keyed by `field_key`. It's Customers-specific and script-managed only (no dashboard UI ever shipped to add/edit a definition). Orders needs the same capability next, and would otherwise duplicate the same table/UI/parsing logic under a different name — Customers is the only thing built on the old pattern, making this the cheapest point to unify before a second copy exists.
+
+## Decisions
+
+**One generic `field_definitions` table**, discriminated by `entity_type` (`'customer' | 'order'`, extensible to Catalog/Bookings later), replaces `customer_field_definitions`. One shared "manage fields" dashboard component and one shared dynamic-form-renderer component are built once and reused by every module that adopts this system, not rebuilt per module.
+
+**Core fields become toggleable, uniformly with custom fields — this is the decision that reshapes the original design.** The starting premise (core fields like `email`/`phone` are always present; only genuinely custom fields are business-manageable) was replaced mid-grill: every field a business's dashboard shows should reflect only what their real, external website actually collects, because Simmo (the operator) has to manually wire each new field into that client's bespoke site afterward regardless of whether it's "core" or "custom" — there's no meaningful difference between the two from the business owner's side. `field_definitions` gains an `is_core boolean` column: an `is_core` row is a visibility toggle over a real, already-existing typed column (`customers.email`, `customers.phone`) rather than a `custom_fields`-jsonb-backed field. `full_name` is exempt entirely — a customer record cannot exist without one, so it's never toggleable. Orders gets **no** `is_core` rows at launch: every existing Orders column (status, payment method, delivery address, total, items) is structurally intrinsic to what an order is, unlike `email`/`phone`, which are genuinely optional business data. The toggle mechanism exists for Orders' future genuinely-custom fields only.
+
+**Self-serve is uniform**: a business owner adds a custom field or toggles a core field on/off through the same dashboard UI, no operator step for that action itself. Wiring the matching input into the client's actual external site's form stays a separate, always-manual step the operator does afterward — unchanged from the original premise, and true regardless of which kind of field triggered it.
+
+**Field types at launch: `text | number | date | select | boolean | multi_select`** — the four Customers already has, plus boolean and multi-select added during the grill. `multi_select` stores an array in `custom_fields`, which has no natural sort order; it's excluded from the sortable column set entirely (still filterable — "contains any of X" is meaningful, "less than" isn't).
+
+**Removing a field is soft-hide, not hard-delete** (`active boolean not null default true` on the definition row), per Standards §5's soft-delete-by-default principle. Toggling a custom field off stops it from being shown/collected; existing values already stored in `custom_fields` for that key are untouched, so re-enabling the field later doesn't lose history. Toggling an `is_core` field off is even simpler structurally — the underlying typed column and its data are never touched, only the visibility row's flag changes.
+
+**Sort and filter are entirely client-side**, matching the existing convention every dashboard table already uses (fetch all rows once, `TanStack Table` sorts/filters the in-memory array — the code's own comments call this "fine for now, revisit past ~500 rows," and no table is anywhere near that today). No new Postgres indexing or server-side per-type jsonb casting is built this pass; that's the trigger to revisit only once a real client's row count makes client-side sorting genuinely slow, not before. `boolean` and `multi_select` filters reuse the existing `DataTableFacetedFilter` component as-is (already used three places); `text` reuses the existing search input; `number`/`date` get a new range filter — plain min/max `Input`s for number (typing an exact bound beats a slider needing known bounds for business data), `Popover` + a newly-added shadcn `Range Calendar` for date (neither `calendar` nor `range-calendar` nor `slider` exist in the repo yet — added via the CLI per Standards §6, not hand-rolled).
+
+**Row and column reordering are out of scope for this build entirely**, including the originally-planned "drag-reorder core and custom fields into one unified list" and "horizontal column drag in the table header." (Investigated during the grill: the repo's only existing drag-reorder example, `src/lib/components/data-table.svelte`, is an unused shadcn scaffold demonstrating *row* drag via `dnd-kit`, not column drag — there was no existing convention to extend here, it would have been new work.) Fields display in creation order (`display_order`, no longer reorderable).
+
+**Migration is direct, not phased** — real production data is small: 2 `customer_field_definitions` rows (both Netbreakerz: `preferred_size` select, `loyalty_member_id` text), 0 for WorldView, 1 customer anywhere with non-empty `custom_fields`. Every *existing* organization is backfilled with active `is_core` rows for `email`/`phone` at migration time, so nothing visibly changes in any live dashboard on deploy. Organizations provisioned *after* this ships start with the minimal set (name-only) — the operator activates fields per client as that client's real intake form dictates, going forward only.
+
+**No public API surface changes.** Confirmed by reading the actual code (not assumed): no existing public endpoint reads or writes `custom_fields` today — `findOrCreateCustomer`, used by every public write path (Bookings, Inquiries, Catalog checkout), never touches it. This build keeps that true; extending Netbreakerz's checkout contract to accept dynamic custom order-fields is explicitly deferred to its own later pass, not folded in here.
+
+**Build order:** retrofit Customers onto the generic system first (migrate the 2 real rows, backfill core-field visibility), then build Orders on it.
+
+## Consequences
+
+- `customer_field_definitions` is retired in favor of `field_definitions` filtered to `entity_type = 'customer'` — any code or script referencing the old table name directly needs updating, not left as a second, stale path.
+- A future module (Catalog, Bookings) adopting this system is a new `entity_type` value plus that module's own `is_core` row set (if any), not new infrastructure — the seam already exists.
+- If a real client later needs server-side sort/filter (row counts genuinely large) or drag-reorder, both are additive follow-ups against this same schema, not a redesign — `field_definitions` already carries everything a server-side or reorderable version would need (`field_type` for casting, `display_order` for position).

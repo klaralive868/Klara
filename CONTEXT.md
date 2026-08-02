@@ -55,3 +55,17 @@ A Resource has a lifecycle status (`draft` | `published` | `archived`, with `arc
 **Travel Inquiry**:
 A customer's request for the agent to design a custom trip, with no existing Resource to book — upstream of and structurally separate from a Booking (which always references a specific Resource). May later be converted into a real Resource + Booking by the agent, but isn't one itself.
 _Avoid_: Booking, Request (both already mean something specific and resource-bound in this context).
+
+### Field Definitions (generic, cross-module)
+
+**Field Definition**:
+A per-organization row describing one field a business's dashboard shows for a given `entity_type` (`customer`, `order`, ...): `field_key`, `label`, `field_type`, `options`, `required`, `display_order`, `active`, `is_core`. Lives in the generic `field_definitions` table (ADR-0011), which replaced the Customers-specific `customer_field_definitions`.
+_Avoid_: Custom field (only accurate for a non-`is_core` row — see below), form field (too generic; this specifically means a data-driven, business-manageable field, not any input on any form).
+
+**Core field**:
+A Field Definition with `is_core: true` — a visibility toggle over a real, already-existing typed column (e.g. `customers.email`, `customers.phone`), not a `custom_fields`-jsonb-backed value. Toggling one off never touches the underlying column or its data, only the definition row's visibility. `full_name` is not a Core Field — it's unconditionally required and has no definition row at all.
+_Avoid_: Custom field (a Core Field is the opposite case within the same table — same toggle mechanism, different storage).
+
+**Custom field**:
+A Field Definition with `is_core: false` — its values live in the owning record's `custom_fields` jsonb column, keyed by `field_key`. Toggling one off (soft-hide, `active: false`) stops it being shown/collected but never purges existing values from `custom_fields`.
+_Avoid_: Field Definition alone when the distinction from a Core Field matters.
