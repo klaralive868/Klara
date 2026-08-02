@@ -13,6 +13,7 @@
 	import CustomerCellStatus from './customer-cell-status.svelte';
 	import CustomerCellActions from './customer-cell-actions.svelte';
 	import type { Customer, CustomerStatus } from '$lib/customers/types';
+	import type { FieldDefinition } from '$lib/field-definitions/types';
 	import {
 		getCoreRowModel,
 		getFilteredRowModel,
@@ -20,7 +21,10 @@
 		type ColumnFiltersState
 	} from '@tanstack/table-core';
 
-	let { customers }: { customers: Customer[] } = $props();
+	let {
+		customers,
+		fieldDefinitions
+	}: { customers: Customer[]; fieldDefinitions: readonly FieldDefinition[] } = $props();
 
 	// Client-side filtering on the already-loaded rows — same "fine for now,
 	// revisit past ~500 rows" reasoning as Catalog's All items table.
@@ -40,23 +44,41 @@
 		return filterValue.size === 0 || filterValue.has(row.getValue(columnId) as string);
 	}
 
-	const columns: ColumnDef<Customer>[] = [
+	function fieldValue(customer: Customer, def: FieldDefinition): unknown {
+		return def.isCore
+			? (customer as unknown as Record<string, unknown>)[def.fieldKey]
+			: customer.customFields[def.fieldKey];
+	}
+
+	function formatFieldValue(value: unknown, def: FieldDefinition): string {
+		if (value === null || value === undefined || value === '') return '';
+		if (def.fieldType === 'boolean') return value ? 'Yes' : 'No';
+		if (def.fieldType === 'multi_select') return Array.isArray(value) ? value.join(', ') : '';
+		return String(value);
+	}
+
+	// Every active field definition (core — email/phone if turned on — and
+	// custom alike) becomes its own column, dynamically, instead of two
+	// hardcoded Email/Phone columns. A field an org hasn't turned on simply
+	// doesn't produce a column at all — the point of the toggle (ADR-0011).
+	const dynamicColumns: ColumnDef<Customer>[] = $derived(
+		fieldDefinitions.map((def) => ({
+			id: def.fieldKey,
+			header: def.label,
+			accessorFn: (row: Customer) => fieldValue(row, def),
+			cell: ({ row }: { row: { original: Customer } }) =>
+				formatFieldValue(fieldValue(row.original, def), def)
+		}))
+	);
+
+	const columns: ColumnDef<Customer>[] = $derived([
 		{
 			accessorKey: 'fullName',
 			header: 'Name',
 			filterFn: 'includesString',
 			cell: ({ row }) => renderComponent(CustomerCellName, { customer: row.original })
 		},
-		{
-			accessorKey: 'email',
-			header: 'Email',
-			cell: ({ row }) => row.original.email ?? ''
-		},
-		{
-			accessorKey: 'phone',
-			header: 'Phone',
-			cell: ({ row }) => row.original.phone ?? ''
-		},
+		...dynamicColumns,
 		{
 			accessorKey: 'source',
 			header: 'Source',
@@ -74,13 +96,15 @@
 			enableHiding: false,
 			cell: ({ row }) => renderComponent(CustomerCellActions, { customer: row.original })
 		}
-	];
+	]);
 
 	const table = createSvelteTable({
 		get data() {
 			return customers;
 		},
-		columns,
+		get columns() {
+			return columns;
+		},
 		state: {
 			get columnFilters() {
 				return columnFilters;

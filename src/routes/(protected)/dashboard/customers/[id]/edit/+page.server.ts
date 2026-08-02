@@ -1,24 +1,19 @@
 import { error, fail } from '@sveltejs/kit';
 import { parseCustomerForm } from '$lib/server/customers';
-import {
-	customerFieldDefinitionFromRow,
-	customerFromRow,
-	type CustomerFieldDefinitionRow,
-	type CustomerRow
-} from '$lib/customers/types';
+import { loadActiveFieldDefinitions } from '$lib/server/field-definitions';
+import { customerFromRow, type CustomerRow } from '$lib/customers/types';
 import type { Actions, PageServerLoad } from './$types';
 
+const ENTITY_TYPE = 'customer';
+
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const [customerResult, defsResult] = await Promise.all([
+	const [customerResult, fieldDefinitions] = await Promise.all([
 		locals.supabase
 			.from('customers')
 			.select('id, full_name, email, phone, custom_fields, source, status')
 			.eq('id', params.id)
 			.maybeSingle(),
-		locals.supabase
-			.from('customer_field_definitions')
-			.select('id, field_key, label, field_type, options, required, display_order')
-			.order('display_order', { ascending: true })
+		loadActiveFieldDefinitions(locals.supabase, ENTITY_TYPE)
 	]);
 
 	if (customerResult.error) {
@@ -35,31 +30,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, 'Customer not found');
 	}
 
-	if (defsResult.error) {
-		console.error('customers: failed to load field definitions', defsResult.error);
-	}
-
 	return {
 		customer: customerFromRow(customerResult.data as CustomerRow),
-		fieldDefinitions: ((defsResult.data ?? []) as CustomerFieldDefinitionRow[]).map(
-			customerFieldDefinitionFromRow
-		)
+		fieldDefinitions
 	};
 };
 
 export const actions: Actions = {
 	update: async ({ request, params, locals }) => {
-		const { data: defsData, error: defsError } = await locals.supabase
-			.from('customer_field_definitions')
-			.select('id, field_key, label, field_type, options, required, display_order')
-			.order('display_order', { ascending: true });
-		if (defsError) {
-			console.error('customers: failed to load field definitions for validation', defsError);
-			return fail(500, { message: 'Could not save the customer. Please try again.' });
-		}
-		const fieldDefinitions = (defsData as CustomerFieldDefinitionRow[]).map(
-			customerFieldDefinitionFromRow
-		);
+		const fieldDefinitions = await loadActiveFieldDefinitions(locals.supabase, ENTITY_TYPE);
 
 		const formData = await request.formData();
 		const parsed = parseCustomerForm(formData, fieldDefinitions);
@@ -68,15 +47,16 @@ export const actions: Actions = {
 		}
 
 		// custom_fields is merged, not replaced wholesale: a value for a key
-		// that's no longer in fieldDefinitions (the field was renamed/removed
-		// from the registry since this customer was last saved) must survive
-		// this save untouched — that's the whole point of the migration's "no
-		// DB constraint ties custom_fields to the current registry" design.
-		// Only keys belonging to a *current* field definition are replaced —
-		// stripping them all out before overlaying parsed.value.customFields
-		// is what lets a still-defined optional field actually be cleared by
-		// leaving it blank, rather than the stale value lingering because a
-		// blank field is omitted from the parsed result entirely.
+		// that's no longer an active field definition (renamed, or soft-hidden
+		// via the fields management page since this customer was last saved)
+		// must survive this save untouched — that's the whole point of
+		// soft-hide (ADR-0011) and of custom_fields having no DB constraint
+		// tying it to the current registry. Only keys belonging to a
+		// *currently active* field definition are replaced — stripping them
+		// all out before overlaying parsed.value.customFields is what lets a
+		// still-active optional field actually be cleared by leaving it
+		// blank, rather than the stale value lingering because a blank field
+		// is omitted from the parsed result entirely.
 		const { data: existing, error: fetchError } = await locals.supabase
 			.from('customers')
 			.select('custom_fields')
@@ -93,21 +73,28 @@ export const actions: Actions = {
 			return fail(404, { message: 'Customer not found.' });
 		}
 
-		const currentFieldKeys = new Set(fieldDefinitions.map((def) => def.fieldKey));
+		const activeCustomFieldKeys = new Set(
+			fieldDefinitions.filter((def) => !def.isCore).map((def) => def.fieldKey)
+		);
 		const preservedFields = Object.fromEntries(
 			Object.entries((existing.custom_fields ?? {}) as Record<string, unknown>).filter(
-				([key]) => !currentFieldKeys.has(key)
+				([key]) => !activeCustomFieldKeys.has(key)
 			)
 		);
 		const mergedCustomFields = { ...preservedFields, ...parsed.value.customFields };
 
+		// coreValues only contains a key for a currently-active is_core field
+		// (email/phone) — an inactive one is never included here, so it's
+		// never included in this update payload either, leaving its existing
+		// column value untouched (same soft-hide guarantee as custom_fields
+		// above, just via omission-from-the-update rather than a jsonb merge,
+		// since these are real typed columns).
 		const { error: updateError } = await locals.supabase
 			.from('customers')
 			.update({
 				full_name: parsed.value.fullName,
-				email: parsed.value.email,
-				phone: parsed.value.phone,
-				custom_fields: mergedCustomFields
+				custom_fields: mergedCustomFields,
+				...parsed.value.coreValues
 			})
 			.eq('id', params.id);
 

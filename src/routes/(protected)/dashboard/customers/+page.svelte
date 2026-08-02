@@ -14,5 +14,5 @@
 		<Button href={resolve('/dashboard/customers/new')}>Add customer</Button>
 	</div>
 
-	<CustomersTable customers={data.customers} />
+	<CustomersTable customers={data.customers} fieldDefinitions={data.fieldDefinitions} />
 </div>
