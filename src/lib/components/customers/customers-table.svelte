@@ -23,7 +23,8 @@
 		numberRangeFilterFn,
 		dateRangeFilterFn,
 		facetFilterFn as dynamicFacetFilterFn,
-		multiSelectFacetFilterFn
+		multiSelectFacetFilterFn,
+		textIncludesFilterFn
 	} from '$lib/field-definitions/table-columns';
 	import {
 		getCoreRowModel,
@@ -67,7 +68,7 @@
 		if (def.fieldType === 'date') return dateRangeFilterFn;
 		if (def.fieldType === 'multi_select') return multiSelectFacetFilterFn;
 		if (def.fieldType === 'select' || def.fieldType === 'boolean') return dynamicFacetFilterFn;
-		return 'includesString' as const;
+		return textIncludesFilterFn;
 	}
 
 	// Every active field definition (core — email/phone if turned on — and

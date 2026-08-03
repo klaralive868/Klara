@@ -33,6 +33,23 @@ export interface NumberRangeFilter {
 	max: number | null;
 }
 
+// TanStack's built-in 'includesString' does `row.getValue(columnId)?.toLowerCase()`
+// — for a null/undefined value (a core text field like email/phone left
+// unset on a given row) that short-circuits to `undefined`, and
+// `Boolean(undefined)` is false, silently excluding that row even when
+// filterValue is '' (meant to mean "no filter applied"). An empty filter
+// must always match everything, same as every other filter fn here.
+export function textIncludesFilterFn(
+	row: { getValue: (columnId: string) => unknown },
+	columnId: string,
+	filterValue: string
+): boolean {
+	if (!filterValue) return true;
+	const raw = row.getValue(columnId);
+	if (raw === null || raw === undefined) return false;
+	return String(raw).toLowerCase().includes(filterValue.toLowerCase());
+}
+
 export function numberRangeFilterFn(
 	row: { getValue: (columnId: string) => unknown },
 	columnId: string,
