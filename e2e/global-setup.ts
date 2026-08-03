@@ -6,6 +6,8 @@ import {
 	E2E_BOOKING_ORG_NAME,
 	E2E_BOOKING_ORG_SLUG,
 	E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
+	E2E_FIELD_DEFINITIONS_ORG_NAME,
+	E2E_FIELD_DEFINITIONS_ORG_SLUG,
 	E2E_SECOND_ORG_NAME,
 	E2E_SECOND_ORG_SLUG,
 	E2E_TEST_ORG_NAME,
@@ -22,6 +24,8 @@ import {
 	CATEGORIES_OWNER_PASSWORD,
 	CUSTOMERS_OWNER_EMAIL,
 	CUSTOMERS_OWNER_PASSWORD,
+	FIELD_DEFINITIONS_OWNER_EMAIL,
+	FIELD_DEFINITIONS_OWNER_PASSWORD,
 	IMAGES_OWNER_EMAIL,
 	IMAGES_OWNER_PASSWORD,
 	INQUIRIES_OWNER_EMAIL,
@@ -40,6 +44,10 @@ import {
 	RESOURCES_OWNER_PASSWORD,
 	SECOND_ORG_EMAIL,
 	SECOND_ORG_PASSWORD,
+	SECOND_ORG_EMAIL_B,
+	SECOND_ORG_PASSWORD_B,
+	SECOND_ORG_EMAIL_C,
+	SECOND_ORG_PASSWORD_C,
 	STOCK_OWNER_EMAIL,
 	STOCK_OWNER_PASSWORD,
 	TEST_USER_EMAIL,
@@ -90,6 +98,8 @@ export default async function globalSetup() {
 		MANAGER_EMAIL,
 		OPERATOR_EMAIL,
 		SECOND_ORG_EMAIL,
+		SECOND_ORG_EMAIL_B,
+		SECOND_ORG_EMAIL_C,
 		CATALOG_OWNER_EMAIL,
 		CATEGORIES_OWNER_EMAIL,
 		IMAGES_OWNER_EMAIL,
@@ -100,7 +110,8 @@ export default async function globalSetup() {
 		RESOURCES_OWNER_EMAIL,
 		BOOKINGS_OWNER_EMAIL,
 		INQUIRIES_OWNER_EMAIL,
-		RESOURCE_IMAGES_OWNER_EMAIL
+		RESOURCE_IMAGES_OWNER_EMAIL,
+		FIELD_DEFINITIONS_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -115,6 +126,25 @@ export default async function globalSetup() {
 		.single();
 	if (orgError || !organization) {
 		throw new Error(`Failed to create e2e test organization: ${orgError?.message}`);
+	}
+
+	// Every module the shared org's spec-file-scoped owners exercise via the
+	// dashboard needs to actually be enabled here — each module route has its
+	// own +layout.server.ts guard (see e.g. dashboard/orders's, gated on
+	// 'catalog') that silently redirects to /dashboard when the caller's org
+	// doesn't have it, which looks identical to a hung/never-loading page to
+	// a test waiting on a form field that will never appear. tier is a plain
+	// required text column, not read for gating itself (only `module` is;
+	// see (protected)/+layout.server.ts) — 'clothing' for catalog matches
+	// the real registry, the rest are placeholders.
+	const { error: modulesError } = await admin.from('client_modules').insert([
+		{ organization_id: organization.id, module: 'catalog', tier: 'clothing' },
+		{ organization_id: organization.id, module: 'bookings', tier: 'default' },
+		{ organization_id: organization.id, module: 'resources', tier: 'default' },
+		{ organization_id: organization.id, module: 'inquiries', tier: 'default' }
+	]);
+	if (modulesError) {
+		throw new Error(`Failed to enable e2e test organization modules: ${modulesError.message}`);
 	}
 
 	await createActiveMember(admin, organization.id, TEST_USER_EMAIL, TEST_USER_PASSWORD, 'owner');
@@ -192,26 +222,54 @@ export default async function globalSetup() {
 		'owner'
 	);
 
-	// A required text field and an optional select field — enough for
-	// customers-crud.spec.ts to exercise both dynamic-field render paths
+	// email/phone active (ADR-0011: is_core toggle) plus a required text field
+	// and an optional select field — enough for customers-crud.spec.ts to
+	// exercise core-field rendering alongside both dynamic-field render paths
 	// (required-field validation, select-option validation) without needing
-	// its own seed script.
-	const { error: fieldDefError } = await admin.from('customer_field_definitions').insert([
+	// its own seed script. This org is treated as "already had these on"
+	// (the pre-migration/backfilled shape), not the fresh-minimal-start
+	// shape — that shape is covered separately via SECOND_ORG_EMAIL's org,
+	// which deliberately has zero field_definitions rows.
+	const { error: fieldDefError } = await admin.from('field_definitions').insert([
 		{
 			organization_id: organization.id,
+			entity_type: 'customer',
+			field_key: 'email',
+			label: 'Email',
+			field_type: 'text',
+			required: false,
+			is_core: true,
+			display_order: -2
+		},
+		{
+			organization_id: organization.id,
+			entity_type: 'customer',
+			field_key: 'phone',
+			label: 'Phone',
+			field_type: 'text',
+			required: false,
+			is_core: true,
+			display_order: -1
+		},
+		{
+			organization_id: organization.id,
+			entity_type: 'customer',
 			field_key: 'pet_name',
 			label: 'Pet name',
 			field_type: 'text',
 			required: true,
+			is_core: false,
 			display_order: 1
 		},
 		{
 			organization_id: organization.id,
+			entity_type: 'customer',
 			field_key: 'preferred_groomer',
 			label: 'Preferred groomer',
 			field_type: 'select',
 			options: ['Alex', 'Sam'],
 			required: false,
+			is_core: false,
 			display_order: 2
 		}
 	]);
@@ -251,11 +309,68 @@ export default async function globalSetup() {
 	if (secondOrgError || !secondOrganization) {
 		throw new Error(`Failed to create e2e second test organization: ${secondOrgError?.message}`);
 	}
+	// Three accounts, all members of this same org — the split exists purely
+	// to spread cross-org-check sign-ins across separate rate-limit buckets
+	// (see test-user.ts), not because the checks need genuinely different
+	// organizations.
 	await createActiveMember(
 		admin,
 		secondOrganization.id,
 		SECOND_ORG_EMAIL,
 		SECOND_ORG_PASSWORD,
+		'owner'
+	);
+	await createActiveMember(
+		admin,
+		secondOrganization.id,
+		SECOND_ORG_EMAIL_B,
+		SECOND_ORG_PASSWORD_B,
+		'owner'
+	);
+	await createActiveMember(
+		admin,
+		secondOrganization.id,
+		SECOND_ORG_EMAIL_C,
+		SECOND_ORG_PASSWORD_C,
+		'owner'
+	);
+
+	// SECOND_ORG_EMAIL (and _B/_C) visit module-gated pages (dashboard/resources,
+	// dashboard/catalog, ...) across many specs' cross-org isolation checks
+	// — same reasoning as the shared org's own modules above. Unrelated to
+	// customers-crud.spec.ts's separate use of this same org as the
+	// zero-field_definitions fixture (Customers itself isn't module-gated).
+	const { error: secondOrgModulesError } = await admin.from('client_modules').insert([
+		{ organization_id: secondOrganization.id, module: 'catalog', tier: 'clothing' },
+		{ organization_id: secondOrganization.id, module: 'bookings', tier: 'default' },
+		{ organization_id: secondOrganization.id, module: 'resources', tier: 'default' },
+		{ organization_id: secondOrganization.id, module: 'inquiries', tier: 'default' }
+	]);
+	if (secondOrgModulesError) {
+		throw new Error(
+			`Failed to enable e2e second test organization modules: ${secondOrgModulesError.message}`
+		);
+	}
+
+	// field-definitions-management.spec.ts's own dedicated organization —
+	// deliberately gets zero field_definitions rows seeded, unlike the main
+	// E2E_TEST_ORG above, so it starts in the genuine new-org-minimal-start
+	// shape (ADR-0011) the spec needs to exercise.
+	const { data: fieldDefinitionsOrganization, error: fieldDefinitionsOrgError } = await admin
+		.from('organizations')
+		.insert({ name: E2E_FIELD_DEFINITIONS_ORG_NAME, slug: E2E_FIELD_DEFINITIONS_ORG_SLUG })
+		.select()
+		.single();
+	if (fieldDefinitionsOrgError || !fieldDefinitionsOrganization) {
+		throw new Error(
+			`Failed to create e2e field definitions organization: ${fieldDefinitionsOrgError?.message}`
+		);
+	}
+	await createActiveMember(
+		admin,
+		fieldDefinitionsOrganization.id,
+		FIELD_DEFINITIONS_OWNER_EMAIL,
+		FIELD_DEFINITIONS_OWNER_PASSWORD,
 		'owner'
 	);
 

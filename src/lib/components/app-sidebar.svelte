@@ -6,6 +6,7 @@
 	import MessageCircleQuestionIcon from '@tabler/icons-svelte/icons/message-circle-question';
 	import PackageIcon from '@tabler/icons-svelte/icons/package';
 	import PlusIcon from '@tabler/icons-svelte/icons/plus';
+	import SettingsIcon from '@tabler/icons-svelte/icons/settings';
 	import ShieldIcon from '@tabler/icons-svelte/icons/shield';
 	import ShoppingCartIcon from '@tabler/icons-svelte/icons/shopping-cart';
 	import TagIcon from '@tabler/icons-svelte/icons/tag';
@@ -67,6 +68,11 @@
 			name: 'All orders',
 			url: resolve('/dashboard/orders'),
 			icon: ShoppingCartIcon
+		},
+		{
+			name: 'Fields',
+			url: resolve('/dashboard/orders/fields'),
+			icon: SettingsIcon
 		}
 	];
 
@@ -80,6 +86,11 @@
 			name: 'New customer',
 			url: resolve('/dashboard/customers/new'),
 			icon: UserPlusIcon
+		},
+		{
+			name: 'Fields',
+			url: resolve('/dashboard/customers/fields'),
+			icon: SettingsIcon
 		}
 	];
 

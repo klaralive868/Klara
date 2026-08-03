@@ -4,8 +4,8 @@ import type { Page } from '@playwright/test';
 import {
 	RESOURCE_IMAGES_OWNER_EMAIL,
 	RESOURCE_IMAGES_OWNER_PASSWORD,
-	SECOND_ORG_EMAIL,
-	SECOND_ORG_PASSWORD
+	SECOND_ORG_EMAIL_C as SECOND_ORG_EMAIL,
+	SECOND_ORG_PASSWORD_C as SECOND_ORG_PASSWORD
 } from './test-user';
 
 const IMAGE_1 = path.join(import.meta.dirname, 'fixtures', 'test-image-1.png');

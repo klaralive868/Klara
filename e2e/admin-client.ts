@@ -33,3 +33,9 @@ export const E2E_BOOKING_DRAFT_RESOURCE_NAME = 'E2E Public Booking Draft Package
 // public-api-bookings.spec.ts's allowlisted origin for E2E_BOOKING_ORG,
 // standing in for a client's real external site (ADR-0008 / Standards §12).
 export const E2E_BOOKING_ALLOWED_ORIGIN = 'https://client-site.example';
+
+// field-definitions-management.spec.ts's own dedicated organization — needs
+// to start with zero field_definitions rows (ADR-0011's new-org-minimal
+// -start scenario), which the shared E2E_TEST_ORG no longer has.
+export const E2E_FIELD_DEFINITIONS_ORG_NAME = 'E2E Field Definitions Org';
+export const E2E_FIELD_DEFINITIONS_ORG_SLUG = 'e2e-field-definitions-org';

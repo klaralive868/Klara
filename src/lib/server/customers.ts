@@ -1,9 +1,13 @@
-import type { CustomerFieldDefinition } from '$lib/customers/types';
+import { parseFieldValues } from './field-values';
+import type { FieldDefinition } from '$lib/field-definitions/types';
 
 export interface ParsedCustomerForm {
 	fullName: string;
-	email: string | null;
-	phone: string | null;
+	// Only ever contains a key for a definition that is_core AND is active
+	// (was passed in) — see parseFieldValues' ParsedFieldValues for why an
+	// absent key must never be written to its column (preserves data when a
+	// core field like email/phone is toggled off).
+	coreValues: Record<string, unknown>;
 	customFields: Record<string, unknown>;
 }
 
@@ -11,85 +15,36 @@ export type ParseCustomerFormResult =
 	| { ok: true; value: ParsedCustomerForm }
 	| { ok: false; message: string };
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-// Validates the core fields plus every dynamic field described by
-// `fieldDefinitions` — the caller-supplied set of field_key/label/type/
-// required/options rows for this organization, always re-fetched
-// server-side (never trusted from the client) so a tampered submission
-// can't skip a required field or smuggle in a value of the wrong shape
-// for its type. This is the only place custom_fields values get checked
-// against their definition — the DB's custom_fields column is a plain
-// jsonb bag with no per-key type constraint (Standards §1: not the kind
-// of invariant RLS/CHECK constraints are for).
+// Validates the core `fullName` field (the one thing every customer record
+// requires unconditionally — never a Field Definition, see ADR-0011) plus
+// every field described by `fieldDefinitions`: is_core rows (e.g. email,
+// phone — routed into `coreValues`, written to their real column by the
+// caller) and genuine custom fields (routed into `customFields`, merged
+// into the `custom_fields` jsonb column by the caller). `fieldDefinitions`
+// must already be filtered to `active: true` and this organization's
+// `entity_type: 'customer'` rows — always re-fetched server-side, never
+// trusted from the client, so a tampered submission can't skip a required
+// field or smuggle in a value of the wrong shape for its type.
 export function parseCustomerForm(
 	formData: FormData,
-	fieldDefinitions: readonly CustomerFieldDefinition[]
+	fieldDefinitions: readonly FieldDefinition[]
 ): ParseCustomerFormResult {
 	const fullName = String(formData.get('fullName') ?? '').trim();
-	const email = String(formData.get('email') ?? '').trim();
-	const phone = String(formData.get('phone') ?? '').trim();
-
 	if (!fullName) {
 		return { ok: false, message: 'Enter a name for the customer.' };
 	}
 
-	const customFields: Record<string, unknown> = {};
-	for (const def of fieldDefinitions) {
-		const raw = formData.get(`custom_${def.fieldKey}`);
-		const rawText = raw === null ? '' : String(raw).trim();
-
-		if (!rawText) {
-			if (def.required) {
-				return { ok: false, message: `${def.label} is required.` };
-			}
-			// Not required and left blank — omitted from custom_fields
-			// entirely, not stored as an empty string.
-			continue;
-		}
-
-		switch (def.fieldType) {
-			case 'text':
-				customFields[def.fieldKey] = rawText;
-				break;
-
-			case 'number': {
-				const parsed = Number(rawText);
-				if (!Number.isFinite(parsed)) {
-					return { ok: false, message: `${def.label} must be a number.` };
-				}
-				customFields[def.fieldKey] = parsed;
-				break;
-			}
-
-			case 'date': {
-				// <input type="date"> submits YYYY-MM-DD — reject anything else
-				// rather than passing it through to a Date constructor, which
-				// silently accepts a wide range of ambiguous formats.
-				if (!DATE_PATTERN.test(rawText) || Number.isNaN(Date.parse(rawText))) {
-					return { ok: false, message: `${def.label} must be a valid date.` };
-				}
-				customFields[def.fieldKey] = rawText;
-				break;
-			}
-
-			case 'select': {
-				if (!def.options || !def.options.includes(rawText)) {
-					return { ok: false, message: `${def.label} must be one of the allowed options.` };
-				}
-				customFields[def.fieldKey] = rawText;
-				break;
-			}
-		}
+	const parsedFields = parseFieldValues(formData, fieldDefinitions);
+	if (!parsedFields.ok) {
+		return parsedFields;
 	}
 
 	return {
 		ok: true,
 		value: {
 			fullName,
-			email: email || null,
-			phone: phone || null,
-			customFields
+			coreValues: parsedFields.value.coreValues,
+			customFields: parsedFields.value.customFields
 		}
 	};
 }

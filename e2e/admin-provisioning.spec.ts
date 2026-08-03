@@ -20,7 +20,7 @@ function uniqueOwnerEmail() {
 }
 
 async function signInAsOperator(page: import('@playwright/test').Page) {
-	await page.goto('/sign-in');
+	await page.goto('/sign-in', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(OPERATOR_EMAIL);
 	await page.getByLabel('Password', { exact: true }).fill(OPERATOR_PASSWORD);
 	await page.getByRole('button', { name: 'Sign in' }).click();
@@ -33,7 +33,7 @@ test('a non-operator posting directly to the create-client action is rejected', 
 	// action is the actual attack surface, not just a UI-level check. Posted
 	// via fetch() inside the page (not page.request) so the real, Secure-flagged
 	// session cookie is attached the way a browser genuinely would.
-	await page.goto('/sign-in');
+	await page.goto('/sign-in', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(ADMIN_PROVISIONING_NON_OPERATOR_EMAIL);
 	await page.getByLabel('Password', { exact: true }).fill(ADMIN_PROVISIONING_NON_OPERATOR_PASSWORD);
 	await page.getByRole('button', { name: 'Sign in' }).click();
@@ -74,7 +74,7 @@ test('a duplicate owner email is rejected with a clear error and leaves no orpha
 	// for inviteUserByEmail's email_exists failure — exercising both the
 	// "duplicate email" and "partial-failure rollback" requirements together.
 	await signInAsOperator(page);
-	await page.goto('/admin/clients/new');
+	await page.goto('/admin/clients/new', { waitUntil: 'networkidle' });
 
 	const businessName = uniqueBusinessName();
 	await page.getByLabel('Business name').fill(businessName);
@@ -99,7 +99,7 @@ test('an operator creates a client and the invited owner lands in their own, emp
 	browser
 }) => {
 	await signInAsOperator(page);
-	await page.goto('/admin/clients/new');
+	await page.goto('/admin/clients/new', { waitUntil: 'networkidle' });
 
 	const businessName = uniqueBusinessName();
 	const ownerEmail = uniqueOwnerEmail();
