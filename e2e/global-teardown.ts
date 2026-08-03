@@ -23,6 +23,8 @@ import {
 	OPERATOR_EMAIL,
 	RESOURCE_IMAGES_OWNER_EMAIL,
 	SECOND_ORG_EMAIL,
+	SECOND_ORG_EMAIL_B,
+	SECOND_ORG_EMAIL_C,
 	STOCK_OWNER_EMAIL,
 	TEST_USER_EMAIL
 } from './test-user';
@@ -39,6 +41,8 @@ export default async function globalTeardown() {
 			candidate.email === MANAGER_EMAIL ||
 			candidate.email === OPERATOR_EMAIL ||
 			candidate.email === SECOND_ORG_EMAIL ||
+			candidate.email === SECOND_ORG_EMAIL_B ||
+			candidate.email === SECOND_ORG_EMAIL_C ||
 			candidate.email === CATALOG_OWNER_EMAIL ||
 			candidate.email === CATEGORIES_OWNER_EMAIL ||
 			candidate.email === IMAGES_OWNER_EMAIL ||

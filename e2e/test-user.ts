@@ -23,9 +23,20 @@ export const OPERATOR_PASSWORD = 'password123';
 export const INVITEE_EMAIL_PREFIX = 'e2e-invitee-';
 
 // A member of a genuinely different organization, for cross-organization
-// denied-access checks (e.g. catalog-item-crud.spec.ts).
+// denied-access checks (e.g. catalog-item-crud.spec.ts). Split into three
+// accounts (all members of the same second organization — the split is
+// purely about not sharing a sign-in rate-limit bucket, not about needing
+// separate orgs) once enough spec files' cross-org checks piled onto one
+// email: 11 sign-ins across 10 files would otherwise exceed the local
+// 5-attempts/15-min limit on its own, even in a single clean full-suite
+// run — the same reasoning every other *_OWNER_EMAIL split below already
+// documents, just missed for this one account originally.
 export const SECOND_ORG_EMAIL = 'e2e-second-org-member@example.com';
 export const SECOND_ORG_PASSWORD = 'password123';
+export const SECOND_ORG_EMAIL_B = 'e2e-second-org-member-b@example.com';
+export const SECOND_ORG_PASSWORD_B = 'password123';
+export const SECOND_ORG_EMAIL_C = 'e2e-second-org-member-c@example.com';
+export const SECOND_ORG_PASSWORD_C = 'password123';
 
 // catalog-item-crud.spec.ts's own dedicated user (same org as TEST_USER_EMAIL)
 // — its 3 sign-ins would otherwise share TEST_USER_EMAIL's rate-limit bucket

@@ -3,8 +3,8 @@ import type { Page } from '@playwright/test';
 import {
 	CUSTOMERS_OWNER_EMAIL,
 	CUSTOMERS_OWNER_PASSWORD,
-	SECOND_ORG_EMAIL,
-	SECOND_ORG_PASSWORD
+	SECOND_ORG_EMAIL_B as SECOND_ORG_EMAIL,
+	SECOND_ORG_PASSWORD_B as SECOND_ORG_PASSWORD
 } from './test-user';
 
 async function signIn(page: Page, email: string, password: string) {
