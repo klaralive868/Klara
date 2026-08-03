@@ -1,6 +1,7 @@
 import {
 	createAdminClient,
 	E2E_BOOKING_ORG_NAME,
+	E2E_FIELD_DEFINITIONS_ORG_NAME,
 	E2E_SECOND_ORG_NAME,
 	E2E_TEST_ORG_NAME
 } from './admin-client';
@@ -12,6 +13,7 @@ import {
 	CATALOG_OWNER_EMAIL,
 	CATEGORIES_OWNER_EMAIL,
 	CUSTOMERS_OWNER_EMAIL,
+	FIELD_DEFINITIONS_OWNER_EMAIL,
 	IMAGES_OWNER_EMAIL,
 	INQUIRIES_OWNER_EMAIL,
 	INVITEE_EMAIL_PREFIX,
@@ -47,6 +49,7 @@ export default async function globalTeardown() {
 			candidate.email === BOOKINGS_OWNER_EMAIL ||
 			candidate.email === INQUIRIES_OWNER_EMAIL ||
 			candidate.email === RESOURCE_IMAGES_OWNER_EMAIL ||
+			candidate.email === FIELD_DEFINITIONS_OWNER_EMAIL ||
 			candidate.email?.startsWith(INVITEE_EMAIL_PREFIX) ||
 			candidate.email?.startsWith(ADMIN_PROVISIONED_OWNER_EMAIL_PREFIX)
 	);
@@ -60,5 +63,6 @@ export default async function globalTeardown() {
 	await admin.from('organizations').delete().eq('name', E2E_TEST_ORG_NAME);
 	await admin.from('organizations').delete().eq('name', E2E_SECOND_ORG_NAME);
 	await admin.from('organizations').delete().eq('name', E2E_BOOKING_ORG_NAME);
+	await admin.from('organizations').delete().eq('name', E2E_FIELD_DEFINITIONS_ORG_NAME);
 	await admin.from('organizations').delete().like('name', `${ADMIN_PROVISIONED_ORG_NAME_PREFIX}%`);
 }

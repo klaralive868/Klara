@@ -35,9 +35,13 @@ create table public.field_definitions (
 	is_core boolean not null default false,
 	created_at timestamptz not null default now(),
 	unique (organization_id, entity_type, field_key),
-	-- A 'select' or 'multi_select' field is unrenderable without its option
-	-- list; every other type ignores this column.
-	check (field_type not in ('select', 'multi_select') or options is not null),
+	-- A 'select' or 'multi_select' field is unrenderable without at least one
+	-- real option — not null alone isn't enough, since '[]'::jsonb is a
+	-- non-null value; every other type ignores this column.
+	check (
+		field_type not in ('select', 'multi_select')
+		or (options is not null and jsonb_typeof(options) = 'array' and jsonb_array_length(options) > 0)
+	),
 	check (not is_core or (entity_type = 'customer' and field_key in ('email', 'phone')))
 );
 

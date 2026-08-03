@@ -103,8 +103,8 @@ test('the server rejects a select value that is not one of the field definition\
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams({
 				fullName: 'Bad Groomer Customer',
-				custom_pet_name: 'Rex',
-				custom_preferred_groomer: 'Not A Real Groomer'
+				field_pet_name: 'Rex',
+				field_preferred_groomer: 'Not A Real Groomer'
 			})
 		});
 		return res.json();
@@ -179,14 +179,19 @@ test("a different organization's member cannot see or edit this organization's c
 	await secondOrgContext.close();
 });
 
-test('an organization with zero field definitions sees only the three core fields, no empty placeholder', async ({
+test('an organization with zero field definitions sees only the required Name field — email/phone are toggleable, not always-on', async ({
 	page
 }) => {
+	// ADR-0011: a brand-new organization starts minimal. SECOND_ORG_EMAIL's
+	// org has no field_definitions rows at all (never had email/phone
+	// activated, unlike the main e2e org — see global-setup.ts), so its
+	// customer form shows only the one field every customer unconditionally
+	// requires.
 	await signIn(page, SECOND_ORG_EMAIL, SECOND_ORG_PASSWORD);
 	await page.goto('/dashboard/customers/new');
 
 	await expect(page.getByLabel('Name', { exact: true })).toBeVisible();
-	await expect(page.getByLabel('Email')).toBeVisible();
-	await expect(page.getByLabel('Phone')).toBeVisible();
-	await expect(page.locator('form input, form select')).toHaveCount(3);
+	await expect(page.getByLabel('Email')).toHaveCount(0);
+	await expect(page.getByLabel('Phone')).toHaveCount(0);
+	await expect(page.locator('form input, form select')).toHaveCount(1);
 });

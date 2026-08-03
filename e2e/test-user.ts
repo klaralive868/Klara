@@ -96,3 +96,11 @@ export const INQUIRIES_OWNER_PASSWORD = 'password123';
 // spec-file-scoped users above.
 export const RESOURCE_IMAGES_OWNER_EMAIL = 'e2e-resource-images-owner@example.com';
 export const RESOURCE_IMAGES_OWNER_PASSWORD = 'password123';
+
+// field-definitions-management.spec.ts's own dedicated user AND its own
+// dedicated organization (not a member of the shared E2E_TEST_ORG) — this
+// spec specifically needs an organization with zero field_definitions rows
+// at setup time (ADR-0011's new-org-minimal-start scenario), which the
+// shared org no longer has (see global-setup.ts's core-field seed for it).
+export const FIELD_DEFINITIONS_OWNER_EMAIL = 'e2e-field-definitions-owner@example.com';
+export const FIELD_DEFINITIONS_OWNER_PASSWORD = 'password123';

@@ -6,6 +6,8 @@ import {
 	E2E_BOOKING_ORG_NAME,
 	E2E_BOOKING_ORG_SLUG,
 	E2E_BOOKING_PUBLISHED_RESOURCE_NAME,
+	E2E_FIELD_DEFINITIONS_ORG_NAME,
+	E2E_FIELD_DEFINITIONS_ORG_SLUG,
 	E2E_SECOND_ORG_NAME,
 	E2E_SECOND_ORG_SLUG,
 	E2E_TEST_ORG_NAME,
@@ -22,6 +24,8 @@ import {
 	CATEGORIES_OWNER_PASSWORD,
 	CUSTOMERS_OWNER_EMAIL,
 	CUSTOMERS_OWNER_PASSWORD,
+	FIELD_DEFINITIONS_OWNER_EMAIL,
+	FIELD_DEFINITIONS_OWNER_PASSWORD,
 	IMAGES_OWNER_EMAIL,
 	IMAGES_OWNER_PASSWORD,
 	INQUIRIES_OWNER_EMAIL,
@@ -100,7 +104,8 @@ export default async function globalSetup() {
 		RESOURCES_OWNER_EMAIL,
 		BOOKINGS_OWNER_EMAIL,
 		INQUIRIES_OWNER_EMAIL,
-		RESOURCE_IMAGES_OWNER_EMAIL
+		RESOURCE_IMAGES_OWNER_EMAIL,
+		FIELD_DEFINITIONS_OWNER_EMAIL
 	]);
 	for (const candidate of existing?.users ?? []) {
 		if (candidate.email && staleEmails.has(candidate.email)) {
@@ -192,26 +197,54 @@ export default async function globalSetup() {
 		'owner'
 	);
 
-	// A required text field and an optional select field — enough for
-	// customers-crud.spec.ts to exercise both dynamic-field render paths
+	// email/phone active (ADR-0011: is_core toggle) plus a required text field
+	// and an optional select field — enough for customers-crud.spec.ts to
+	// exercise core-field rendering alongside both dynamic-field render paths
 	// (required-field validation, select-option validation) without needing
-	// its own seed script.
-	const { error: fieldDefError } = await admin.from('customer_field_definitions').insert([
+	// its own seed script. This org is treated as "already had these on"
+	// (the pre-migration/backfilled shape), not the fresh-minimal-start
+	// shape — that shape is covered separately via SECOND_ORG_EMAIL's org,
+	// which deliberately has zero field_definitions rows.
+	const { error: fieldDefError } = await admin.from('field_definitions').insert([
 		{
 			organization_id: organization.id,
+			entity_type: 'customer',
+			field_key: 'email',
+			label: 'Email',
+			field_type: 'text',
+			required: false,
+			is_core: true,
+			display_order: -2
+		},
+		{
+			organization_id: organization.id,
+			entity_type: 'customer',
+			field_key: 'phone',
+			label: 'Phone',
+			field_type: 'text',
+			required: false,
+			is_core: true,
+			display_order: -1
+		},
+		{
+			organization_id: organization.id,
+			entity_type: 'customer',
 			field_key: 'pet_name',
 			label: 'Pet name',
 			field_type: 'text',
 			required: true,
+			is_core: false,
 			display_order: 1
 		},
 		{
 			organization_id: organization.id,
+			entity_type: 'customer',
 			field_key: 'preferred_groomer',
 			label: 'Preferred groomer',
 			field_type: 'select',
 			options: ['Alex', 'Sam'],
 			required: false,
+			is_core: false,
 			display_order: 2
 		}
 	]);
@@ -256,6 +289,28 @@ export default async function globalSetup() {
 		secondOrganization.id,
 		SECOND_ORG_EMAIL,
 		SECOND_ORG_PASSWORD,
+		'owner'
+	);
+
+	// field-definitions-management.spec.ts's own dedicated organization —
+	// deliberately gets zero field_definitions rows seeded, unlike the main
+	// E2E_TEST_ORG above, so it starts in the genuine new-org-minimal-start
+	// shape (ADR-0011) the spec needs to exercise.
+	const { data: fieldDefinitionsOrganization, error: fieldDefinitionsOrgError } = await admin
+		.from('organizations')
+		.insert({ name: E2E_FIELD_DEFINITIONS_ORG_NAME, slug: E2E_FIELD_DEFINITIONS_ORG_SLUG })
+		.select()
+		.single();
+	if (fieldDefinitionsOrgError || !fieldDefinitionsOrganization) {
+		throw new Error(
+			`Failed to create e2e field definitions organization: ${fieldDefinitionsOrgError?.message}`
+		);
+	}
+	await createActiveMember(
+		admin,
+		fieldDefinitionsOrganization.id,
+		FIELD_DEFINITIONS_OWNER_EMAIL,
+		FIELD_DEFINITIONS_OWNER_PASSWORD,
 		'owner'
 	);
 
