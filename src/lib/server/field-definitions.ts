@@ -114,6 +114,17 @@ export async function addCustomField(
 	entityType: FieldEntityType,
 	parsed: ParsedAddFieldForm
 ): Promise<FieldDefinitionActionResult> {
+	// A custom field's derived field_key colliding with a reserved core key
+	// (e.g. naming a custom field "Email") would otherwise let
+	// setCoreFieldActive's upsert silently convert this exact row into the
+	// core field later (same organization_id/entity_type/field_key is what
+	// its ON CONFLICT matches on) — clobbering the user's custom field's
+	// label/type/is_core rather than creating a separate row. Reject the
+	// name up front instead.
+	if (CORE_FIELDS[entityType].some((core) => core.fieldKey === parsed.fieldKey)) {
+		return { ok: false, message: 'That name is reserved for a core field. Choose another.' };
+	}
+
 	const { error } = await supabase.from('field_definitions').insert({
 		entity_type: entityType,
 		field_key: parsed.fieldKey,
