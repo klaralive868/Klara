@@ -12,7 +12,7 @@ async function fillAndSubmitSignIn(
 }
 
 async function signIn(page: import('@playwright/test').Page, email: string, password: string) {
-	await page.goto('/sign-in');
+	await page.goto('/sign-in', { waitUntil: 'networkidle' });
 	await fillAndSubmitSignIn(page, email, password);
 }
 
@@ -61,6 +61,7 @@ test('signing out clears the session and returns to sign-in on the next protecte
 }) => {
 	await signIn(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
 	await expect(page).toHaveURL('/dashboard');
+	await page.waitForLoadState('networkidle');
 
 	await page.getByRole('button', { name: TEST_USER_EMAIL }).click();
 	await page.getByRole('menuitem', { name: 'Log out' }).click();
