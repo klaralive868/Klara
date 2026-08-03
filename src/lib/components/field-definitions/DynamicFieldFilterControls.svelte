@@ -44,6 +44,18 @@
 				numberRanges[def.fieldKey] = { min: null, max: null };
 			} else if (def.fieldType === 'date' && !(def.fieldKey in dateRanges)) {
 				dateRanges[def.fieldKey] = { from: null, to: null };
+			} else if (
+				(def.fieldType === 'select' ||
+					def.fieldType === 'multi_select' ||
+					def.fieldType === 'boolean') &&
+				!(def.fieldKey in facetValues)
+			) {
+				// DataTableFacetedFilter's `selected` is `$bindable(new Set())` —
+				// Svelte 5 forbids binding a path that's still undefined into a
+				// prop with a bindable fallback, so this slot must exist before
+				// the template below ever binds to it (same reasoning as
+				// numberRanges/dateRanges above).
+				facetValues[def.fieldKey] = new Set();
 			}
 		}
 	});
