@@ -185,12 +185,24 @@ export async function setFieldActive(
 // to create the definition row on first activation — a brand-new
 // organization starts with zero field_definitions rows at all (ADR-0011:
 // new orgs start minimal, no email/phone backfill), so "turn phone on" for
-// such an org has no existing row to update. Upserts on the same
-// (organization_id, entity_type, field_key) unique constraint the table
-// already enforces; organization_id is never passed explicitly — the
-// column default (current_organization_id()) supplies it on the insert
-// path, exactly as every other org-scoped insert in this codebase relies
-// on. Never touches customers.email/phone themselves, only this row.
+// such an org has no existing row to update. organization_id is never
+// passed explicitly — the column default (current_organization_id())
+// supplies it on the insert path, exactly as every other org-scoped insert
+// in this codebase relies on. Never touches customers.email/phone
+// themselves, only this row.
+//
+// Deliberately NOT a blind upsert on (organization_id, entity_type,
+// field_key): the insertion guard in addCustomField only stops a *new*
+// custom field from claiming a reserved key going forward — it can't
+// retroactively protect a row created before that guard existed (a stale
+// deploy, a direct DB write, a future migration that adds a new core key
+// colliding with an existing custom one). If a non-core row already holds
+// this exact key, it's someone's real custom field; an upsert would
+// silently convert it in place (same label/type/is_core overwritten,
+// existing custom_fields data on every customer orphaned under a key that
+// no longer means what it used to). Select-then-branch instead, so that
+// case surfaces as a clear, actionable error rather than a silent
+// conversion.
 export async function setCoreFieldActive(
 	supabase: SupabaseClient,
 	entityType: FieldEntityType,
@@ -202,17 +214,34 @@ export async function setCoreFieldActive(
 		return { ok: false, message: 'Unknown core field.' };
 	}
 
-	const { error } = await supabase.from('field_definitions').upsert(
-		{
-			entity_type: entityType,
-			field_key: known.fieldKey,
-			label: known.label,
-			field_type: known.fieldType,
-			is_core: true,
-			active
-		},
-		{ onConflict: 'organization_id,entity_type,field_key' }
-	);
+	const { data: existing, error: fetchError } = await supabase
+		.from('field_definitions')
+		.select('id, is_core')
+		.eq('entity_type', entityType)
+		.eq('field_key', fieldKey)
+		.maybeSingle();
+
+	if (fetchError) {
+		return { ok: false, message: 'Could not update the field. Please try again.' };
+	}
+
+	if (existing && !existing.is_core) {
+		return {
+			ok: false,
+			message: `A custom field named "${known.label}" already exists — rename or hide it before turning on the core ${known.label} field.`
+		};
+	}
+
+	const { error } = existing
+		? await supabase.from('field_definitions').update({ active }).eq('id', existing.id)
+		: await supabase.from('field_definitions').insert({
+				entity_type: entityType,
+				field_key: known.fieldKey,
+				label: known.label,
+				field_type: known.fieldType,
+				is_core: true,
+				active
+			});
 
 	if (error) {
 		return { ok: false, message: 'Could not update the field. Please try again.' };

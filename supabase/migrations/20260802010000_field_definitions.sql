@@ -76,10 +76,24 @@ create policy field_definitions_delete_own_organization
 grant select, insert, update, delete on public.field_definitions to authenticated;
 grant select, insert, update, delete on public.field_definitions to service_role;
 
+-- Defensive: if a pre-existing customer_field_definitions row already used
+-- the reserved 'email'/'phone' key, the unconditional backfill below would
+-- collide with it on this table's own (organization_id, entity_type,
+-- field_key) unique constraint, failing this migration outright. This
+-- shouldn't be structurally possible today — 'email'/'phone' never existed
+-- as flexible-field keys before this migration — but the guarantee
+-- shouldn't rest on today's data staying clean forever. Renamed, not
+-- dropped, so the business's own data survives under a disambiguated key
+-- rather than being lost to a failed migration or (worse) a silent
+-- overwrite.
+update public.customer_field_definitions
+set field_key = field_key || '_custom_' || substr(id::text, 1, 8)
+where field_key in ('email', 'phone');
+
 -- Migrate the real, existing customer_field_definitions rows across
 -- unchanged (id/org/field_key/label/field_type/options/required/
--- display_order preserved) — as of this migration, exactly 2 rows in
--- production, both Netbreakerz.
+-- display_order preserved, field_key above notwithstanding) — as of this
+-- migration, exactly 2 rows in production, both Netbreakerz.
 insert into public.field_definitions
 	(id, organization_id, entity_type, field_key, label, field_type, options, required, display_order, active, is_core, created_at)
 select
