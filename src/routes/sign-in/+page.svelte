@@ -10,7 +10,7 @@
 	const id = $props.id();
 </script>
 
-<main class="mx-auto mt-16 max-w-sm">
+<main class="mx-auto mt-16 max-w-sm px-4">
 	<h1 class="mb-6 text-xl font-semibold">Sign in</h1>
 
 	{#if data.notice}
