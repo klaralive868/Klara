@@ -134,21 +134,37 @@ export async function addCustomField(
 	return { ok: true };
 }
 
-// Toggles an existing custom field's visibility. Never touches
+// Toggles an existing CUSTOM field's visibility. Never touches
 // custom_fields data, only this row's `active` flag — soft-hide, not
 // delete (Standards §5).
+//
+// Scoped by entity_type AND is_core = false, not just id — RLS already
+// confines the update to the caller's own organization, but within that
+// org a same-organization field id could otherwise belong to the *other*
+// entity_type (a customer field toggled through the orders page or vice
+// versa) or be an is_core row (email/phone), silently bypassing
+// setCoreFieldActive's dedicated whitelist. Both are real cross-purpose
+// gaps, not cross-org ones — this closes both by making the id alone
+// insufficient to match a row outside what this action is actually for.
 export async function setFieldActive(
 	supabase: SupabaseClient,
+	entityType: FieldEntityType,
 	fieldId: string,
 	active: boolean
 ): Promise<FieldDefinitionActionResult> {
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('field_definitions')
 		.update({ active })
-		.eq('id', fieldId);
+		.eq('id', fieldId)
+		.eq('entity_type', entityType)
+		.eq('is_core', false)
+		.select('id');
 
 	if (error) {
 		return { ok: false, message: 'Could not update the field. Please try again.' };
+	}
+	if (!data || data.length === 0) {
+		return { ok: false, message: 'Field not found.' };
 	}
 
 	return { ok: true };

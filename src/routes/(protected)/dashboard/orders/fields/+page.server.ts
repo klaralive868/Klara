@@ -27,7 +27,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Missing field.' });
 		}
 
-		const result = await setFieldActive(locals.supabase, fieldId, active);
+		const result = await setFieldActive(locals.supabase, ENTITY_TYPE, fieldId, active);
 		if (!result.ok) {
 			return fail(400, { message: result.message });
 		}
